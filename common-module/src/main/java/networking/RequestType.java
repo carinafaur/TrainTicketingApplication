@@ -1,0 +1,5 @@
+package networking;
+
+public enum RequestType {
+    LOGIN, LOGOUT,GET_ALL_ROUTES,ADD_ROUTE,GET_ALL_STATIONS,UPDATE_ROUTE,REMOVE_ROUTE;
+}
