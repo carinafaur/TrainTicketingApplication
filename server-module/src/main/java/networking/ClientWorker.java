@@ -1,6 +1,8 @@
 package networking;
 
 import dtos.RouteDTO;
+import dtos.ScheduleDTO;
+import dtos.StationDTO;
 import dtos.TrainDTO;
 import networking.handlers.HandlerRegistry;
 import networking.handlers.RequestHandler;
@@ -12,17 +14,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 
-/**
- * Per-connection worker. It owns the socket I/O, dispatches incoming requests
- * via the {@link HandlerRegistry}, and pushes observer notifications back to
- * the connected client. All business logic lives in the handlers and in
- * {@link IService} (MasterService).
- */
 public class ClientWorker implements Runnable, IObserver {
 
-    /**
-     * Single shared registry — handlers are stateless.
-     */
     private static final HandlerRegistry REGISTRY = new HandlerRegistry();
 
     private final IService server;
@@ -42,6 +35,36 @@ public class ClientWorker implements Runnable, IObserver {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public void scheduleAdded(ScheduleDTO newSchedule) {
+        sendQuiet(new Response(ResponseType.SCHEDULE_ADDED, newSchedule));
+    }
+
+    @Override
+    public void scheduleDeleted(ScheduleDTO oldSchedule) {
+        sendQuiet(new Response(ResponseType.SCHEDULE_REMOVED, oldSchedule));
+    }
+
+    @Override
+    public void scheduleUpdated(ScheduleDTO updatedSchedule) {
+        sendQuiet(new Response(ResponseType.SCHEDULE_UPDATED, updatedSchedule));
+    }
+
+    @Override
+    public void stationAdded(StationDTO newStation) {
+        sendQuiet(new Response(ResponseType.STATION_ADDED, newStation));
+    }
+
+    @Override
+    public void stationDeleted(StationDTO oldStation) {
+        sendQuiet(new Response(ResponseType.STATION_REMOVED, oldStation));
+    }
+
+    @Override
+    public void stationUpdated(StationDTO updatedStation) {
+        sendQuiet(new Response(ResponseType.STATION_UPDATED, updatedStation));
     }
 
     @Override
@@ -68,8 +91,6 @@ public class ClientWorker implements Runnable, IObserver {
         }
         return handler.handle(request, server, this);
     }
-
-    // ---------------------------------------------- Observer push to client
 
     @Override
     public void routeAdded(RouteDTO newRoute) {

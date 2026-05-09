@@ -2,6 +2,8 @@ package gui;
 
 import domain.User;
 import dtos.RouteDTO;
+import dtos.ScheduleDTO;
+import dtos.StationDTO;
 import dtos.TrainDTO;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -52,7 +54,15 @@ public class CustomerController implements IObserver {
     @Override public void routeDeleted(RouteDTO oldRoute) {}
     @Override public void routeUpdated(RouteDTO updatedRoute) {}
 
+    @Override public void stationAdded(StationDTO newStation) {}
+    @Override public void stationDeleted(StationDTO oldStation) {}
+    @Override public void stationUpdated(StationDTO updatedStation) {}
+
     @Override public void trainAdded(TrainDTO newTrain) {}
     @Override public void trainDeleted(TrainDTO oldTrain) {}
     @Override public void trainUpdated(TrainDTO updatedTrain) {}
+
+    @Override public void scheduleAdded(ScheduleDTO newSchedule) {}
+    @Override public void scheduleDeleted(ScheduleDTO oldSchedule) {}
+    @Override public void scheduleUpdated(ScheduleDTO updatedSchedule) {}
 }

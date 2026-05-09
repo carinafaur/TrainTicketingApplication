@@ -1,39 +1,33 @@
 package service;
 
 import dtos.RouteDTO;
+import dtos.ScheduleDTO;
+import dtos.StationDTO;
 import dtos.TrainDTO;
 
 /**
  * Callback contract used by the server to push entity-change notifications
- * to logged-in clients. Each connected client is registered as an observer
- * at login time and receives a callback for every relevant change made by
- * any other client.
+ * to logged-in clients.
  *
  * <p><b>Threading note:</b> implementations are invoked from the
- * server-reader thread on the client side (see {@code ServerProxy}). UI
- * implementations (JavaFX controllers) must marshal updates to the UI
- * thread, e.g. via {@code Platform.runLater(...)}.
- *
- * <p>DTOs are used (instead of full entities) so that the wire payload
- * stays small and decoupled from the JPA entity graph.
+ * server-reader thread on the client side. UI implementations must marshal
+ * updates to the UI thread via {@code Platform.runLater(...)}.
  */
 public interface IObserver {
 
-    /** Notifies that a new route was added. */
     void routeAdded(RouteDTO newRoute);
-
-    /** Notifies that an existing route was deleted. */
     void routeDeleted(RouteDTO oldRoute);
-
-    /** Notifies that an existing route was updated (start/end changed). */
     void routeUpdated(RouteDTO updatedRoute);
 
-    /** Notifies that a new train was added. */
+    void stationAdded(StationDTO newStation);
+    void stationDeleted(StationDTO oldStation);
+    void stationUpdated(StationDTO updatedStation);
+
     void trainAdded(TrainDTO newTrain);
-
-    /** Notifies that an existing train was deleted. */
     void trainDeleted(TrainDTO oldTrain);
-
-    /** Notifies that an existing train was updated (number or capacity changed). */
     void trainUpdated(TrainDTO updatedTrain);
+
+    void scheduleAdded(ScheduleDTO newSchedule);
+    void scheduleDeleted(ScheduleDTO oldSchedule);
+    void scheduleUpdated(ScheduleDTO updatedSchedule);
 }

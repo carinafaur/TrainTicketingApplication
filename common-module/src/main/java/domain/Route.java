@@ -58,4 +58,11 @@ public class Route implements Serializable {
     public String getEndCity(){
         return endStation.getStationCity();
     }
+
+    @Override
+    public String toString() {
+        String s = startStation == null ? "?" : startStation.getStationCity();
+        String e = endStation == null ? "?" : endStation.getStationCity();
+        return s + " → " + e;
+    }
 }

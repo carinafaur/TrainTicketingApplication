@@ -1,11 +1,14 @@
 package networking;
 
 import domain.Route;
+import domain.Schedule;
 import domain.Station;
 import domain.Train;
 import domain.User;
 import dtos.DTOUtils;
 import dtos.RouteDTO;
+import dtos.ScheduleDTO;
+import dtos.StationDTO;
 import dtos.TrainDTO;
 import dtos.UserDTO;
 import exceptions.AppException;
@@ -16,6 +19,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -31,6 +35,8 @@ public class ServerProxy implements IService {
     private volatile boolean finished;
     private final BlockingQueue<Response> responses = new LinkedBlockingDeque<>();
 
+    private volatile List<ScheduleDTO> lastSchedulesDTO = List.of();
+
     public ServerProxy(String host, int port) {
         this.host = host;
         this.port = port;
@@ -40,8 +46,6 @@ public class ServerProxy implements IService {
     public void setObserver(IObserver clientObserver) {
         this.clientObserver = clientObserver;
     }
-
-    // ---------------------------------------------------------------- Auth
 
     @Override
     public User loginUser(String username, String password, IObserver client) throws AppException {
@@ -72,101 +76,138 @@ public class ServerProxy implements IService {
         }
     }
 
-    // -------------------------------------------------------------- Routes
-
     @Override
     public List<Station> getAllStations() {
-        try {
-            checkConnection();
-            sendRequest(new Request(RequestType.GET_ALL_STATIONS, null));
-            Response res = readResponse();
-            if (res.getType() == ResponseType.ERROR) throw new AppException(res.getErrorMessage());
-            //noinspection unchecked
-            return (List<Station>) res.getData();
-        } catch (AppException e) {
-            System.err.println("Error getting stations: " + e.getMessage());
-            return List.of();
-        }
+        return fetchList(RequestType.GET_ALL_STATIONS, "stations");
     }
 
     @Override
     public List<Route> getAllRoutes() {
-        try {
-            checkConnection();
-            sendRequest(new Request(RequestType.GET_ALL_ROUTES, null));
-            Response res = readResponse();
-            if (res.getType() == ResponseType.ERROR) throw new AppException(res.getErrorMessage());
-            //noinspection unchecked
-            return (List<Route>) res.getData();
-        } catch (AppException e) {
-            System.err.println("Error getting routes: " + e.getMessage());
-            return List.of();
-        }
+        return fetchList(RequestType.GET_ALL_ROUTES, "routes");
     }
 
     @Override
     public void addRoute(Route route) throws AppException {
-        sendRequest(new Request(RequestType.ADD_ROUTE, DTOUtils.getDTO(route)));
-        Response res = readResponse();
-        if (res.getType() == ResponseType.ERROR) throw new AppException(res.getErrorMessage());
+        sendRequestExpectingOk(new Request(RequestType.ADD_ROUTE, DTOUtils.getDTO(route)));
     }
 
     @Override
     public void updateRoute(Route newRoute) throws AppException {
-        sendRequest(new Request(RequestType.UPDATE_ROUTE, DTOUtils.getDTO(newRoute)));
-        Response res = readResponse();
-        if (res.getType() == ResponseType.ERROR) throw new AppException(res.getErrorMessage());
+        sendRequestExpectingOk(new Request(RequestType.UPDATE_ROUTE, DTOUtils.getDTO(newRoute)));
     }
 
     @Override
     public void removeRoute(Route route) throws AppException {
-        sendRequest(new Request(RequestType.REMOVE_ROUTE, DTOUtils.getDTO(route)));
-        Response res = readResponse();
-        if (res.getType() == ResponseType.ERROR) throw new AppException(res.getErrorMessage());
+        sendRequestExpectingOk(new Request(RequestType.REMOVE_ROUTE, DTOUtils.getDTO(route)));
     }
 
     @Override
     public Station findStationById(int id) { return null; }
 
-    // -------------------------------------------------------------- Trains
+    @Override
+    public void addStation(Station station) throws AppException {
+        sendRequestExpectingOk(new Request(RequestType.ADD_STATION, DTOUtils.getDTO(station)));
+    }
+
+    @Override
+    public void updateStation(Station station) throws AppException {
+        sendRequestExpectingOk(new Request(RequestType.UPDATE_STATION, DTOUtils.getDTO(station)));
+    }
+
+    @Override
+    public void removeStation(Station station) throws AppException {
+        sendRequestExpectingOk(new Request(RequestType.REMOVE_STATION, DTOUtils.getDTO(station)));
+    }
 
     @Override
     public List<Train> getAllTrains() {
-        try {
-            checkConnection();
-            sendRequest(new Request(RequestType.GET_ALL_TRAINS, null));
-            Response res = readResponse();
-            if (res.getType() == ResponseType.ERROR) throw new AppException(res.getErrorMessage());
-            //noinspection unchecked
-            return (List<Train>) res.getData();
-        } catch (AppException e) {
-            System.err.println("Error getting trains: " + e.getMessage());
-            return List.of();
-        }
+        return fetchList(RequestType.GET_ALL_TRAINS, "trains");
     }
 
     @Override
     public void addTrain(Train train) throws AppException {
-        sendRequest(new Request(RequestType.ADD_TRAIN, DTOUtils.getDTO(train)));
-        Response res = readResponse();
-        if (res.getType() == ResponseType.ERROR) throw new AppException(res.getErrorMessage());
+        sendRequestExpectingOk(new Request(RequestType.ADD_TRAIN, DTOUtils.getDTO(train)));
     }
 
     @Override
     public void updateTrain(Train train) throws AppException {
-        sendRequest(new Request(RequestType.UPDATE_TRAIN, DTOUtils.getDTO(train)));
-        Response res = readResponse();
-        if (res.getType() == ResponseType.ERROR) throw new AppException(res.getErrorMessage());
+        sendRequestExpectingOk(new Request(RequestType.UPDATE_TRAIN, DTOUtils.getDTO(train)));
     }
 
     @Override
     public void removeTrain(Train train) throws AppException {
-        sendRequest(new Request(RequestType.REMOVE_TRAIN, DTOUtils.getDTO(train)));
+        sendRequestExpectingOk(new Request(RequestType.REMOVE_TRAIN, DTOUtils.getDTO(train)));
+    }
+
+    @Override
+    public List<Schedule> getAllSchedules() {
+        try {
+            checkConnection();
+            sendRequest(new Request(RequestType.GET_ALL_SCHEDULES, null));
+            Response res = readResponse();
+            if (res.getType() == ResponseType.ERROR) throw new AppException(res.getErrorMessage());
+            @SuppressWarnings("unchecked")
+            List<ScheduleDTO> dtos = (List<ScheduleDTO>) res.getData();
+            this.lastSchedulesDTO = dtos;
+            return new ArrayList<>();
+        } catch (AppException e) {
+            System.err.println("Error getting schedules: " + e.getMessage());
+            this.lastSchedulesDTO = List.of();
+            return List.of();
+        }
+    }
+
+    public List<ScheduleDTO> getAllScheduleDTOs() {
+        getAllSchedules();
+        return lastSchedulesDTO;
+    }
+
+    @Override
+    public void addSchedule(Schedule schedule) throws AppException {
+        sendRequestExpectingOk(new Request(RequestType.ADD_SCHEDULE, DTOUtils.getDTO(schedule)));
+    }
+
+    @Override
+    public void updateSchedule(Schedule schedule) throws AppException {
+        sendRequestExpectingOk(new Request(RequestType.UPDATE_SCHEDULE, DTOUtils.getDTO(schedule)));
+    }
+
+    @Override
+    public void removeSchedule(Schedule schedule) throws AppException {
+        sendRequestExpectingOk(new Request(RequestType.REMOVE_SCHEDULE, DTOUtils.getDTO(schedule)));
+    }
+
+    public void addScheduleDTO(ScheduleDTO dto) throws AppException {
+        sendRequestExpectingOk(new Request(RequestType.ADD_SCHEDULE, dto));
+    }
+
+    public void updateScheduleDTO(ScheduleDTO dto) throws AppException {
+        sendRequestExpectingOk(new Request(RequestType.UPDATE_SCHEDULE, dto));
+    }
+
+    public void removeScheduleDTO(ScheduleDTO dto) throws AppException {
+        sendRequestExpectingOk(new Request(RequestType.REMOVE_SCHEDULE, dto));
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> List<T> fetchList(RequestType type, String label) {
+        try {
+            checkConnection();
+            sendRequest(new Request(type, null));
+            Response res = readResponse();
+            if (res.getType() == ResponseType.ERROR) throw new AppException(res.getErrorMessage());
+            return (List<T>) res.getData();
+        } catch (AppException e) {
+            System.err.println("Error getting " + label + ": " + e.getMessage());
+            return List.of();
+        }
+    }
+
+    private void sendRequestExpectingOk(Request req) throws AppException {
+        sendRequest(req);
         Response res = readResponse();
         if (res.getType() == ResponseType.ERROR) throw new AppException(res.getErrorMessage());
     }
-
-    // ----------------------------------------------------------- I/O glue
 
     private void sendRequest(Request request) throws AppException {
         checkConnection();
@@ -213,7 +254,6 @@ public class ServerProxy implements IService {
             if (out != null) out.close();
             if (connection != null) connection.close();
             clientObserver = null;
-            System.out.println("Connection and streams closed.");
         } catch (IOException e) {
             System.err.println("Error closing connection: " + e.getMessage());
         } finally {
@@ -237,13 +277,19 @@ public class ServerProxy implements IService {
                     if (obj instanceof Response) {
                         Response res = (Response) obj;
                         switch (res.getType()) {
-                            case UPDATED:        if (clientObserver != null) clientObserver.routeUpdated((RouteDTO) res.getData()); break;
-                            case ADDED:          if (clientObserver != null) clientObserver.routeAdded((RouteDTO) res.getData()); break;
-                            case REMOVED:        if (clientObserver != null) clientObserver.routeDeleted((RouteDTO) res.getData()); break;
-                            case TRAIN_ADDED:    if (clientObserver != null) clientObserver.trainAdded((TrainDTO) res.getData()); break;
-                            case TRAIN_UPDATED:  if (clientObserver != null) clientObserver.trainUpdated((TrainDTO) res.getData()); break;
-                            case TRAIN_REMOVED:  if (clientObserver != null) clientObserver.trainDeleted((TrainDTO) res.getData()); break;
-                            default:             responses.put(res);
+                            case UPDATED:           if (clientObserver != null) clientObserver.routeUpdated((RouteDTO) res.getData()); break;
+                            case ADDED:             if (clientObserver != null) clientObserver.routeAdded((RouteDTO) res.getData()); break;
+                            case REMOVED:           if (clientObserver != null) clientObserver.routeDeleted((RouteDTO) res.getData()); break;
+                            case STATION_ADDED:     if (clientObserver != null) clientObserver.stationAdded((StationDTO) res.getData()); break;
+                            case STATION_UPDATED:   if (clientObserver != null) clientObserver.stationUpdated((StationDTO) res.getData()); break;
+                            case STATION_REMOVED:   if (clientObserver != null) clientObserver.stationDeleted((StationDTO) res.getData()); break;
+                            case TRAIN_ADDED:       if (clientObserver != null) clientObserver.trainAdded((TrainDTO) res.getData()); break;
+                            case TRAIN_UPDATED:     if (clientObserver != null) clientObserver.trainUpdated((TrainDTO) res.getData()); break;
+                            case TRAIN_REMOVED:     if (clientObserver != null) clientObserver.trainDeleted((TrainDTO) res.getData()); break;
+                            case SCHEDULE_ADDED:    if (clientObserver != null) clientObserver.scheduleAdded((ScheduleDTO) res.getData()); break;
+                            case SCHEDULE_UPDATED:  if (clientObserver != null) clientObserver.scheduleUpdated((ScheduleDTO) res.getData()); break;
+                            case SCHEDULE_REMOVED:  if (clientObserver != null) clientObserver.scheduleDeleted((ScheduleDTO) res.getData()); break;
+                            default:                responses.put(res);
                         }
                     }
                 } catch (Exception e) {

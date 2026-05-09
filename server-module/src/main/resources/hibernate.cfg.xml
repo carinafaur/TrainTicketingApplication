@@ -4,5 +4,7 @@
         <mapping class="domain.Route"/>
         <mapping class="domain.Station"/>
         <mapping class="domain.Train"/>
+        <mapping class="domain.Schedule"/>
+        <mapping class="domain.ScheduleStop"/>
     </session-factory>
 </hibernate-configuration>

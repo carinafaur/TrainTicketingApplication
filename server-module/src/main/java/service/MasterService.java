@@ -1,6 +1,7 @@
 package service;
 
 import domain.Route;
+import domain.Schedule;
 import domain.Station;
 import domain.Train;
 import domain.User;
@@ -19,16 +20,19 @@ public class MasterService implements IService {
     private final RouteService routeService;
     private final StationService stationService;
     private final TrainService trainService;
+    private final ScheduleService scheduleService;
     private final Map<String, IObserver> loggedClients = new ConcurrentHashMap<>();
 
     public MasterService(UserService userService,
                          RouteService routeService,
                          StationService stationService,
-                         TrainService trainService) {
+                         TrainService trainService,
+                         ScheduleService scheduleService) {
         this.userService = userService;
         this.routeService = routeService;
         this.stationService = stationService;
         this.trainService = trainService;
+        this.scheduleService = scheduleService;
     }
 
     @Override
@@ -44,9 +48,7 @@ public class MasterService implements IService {
     }
 
     @Override
-    public void setObserver(IObserver clientObserver) {
-        // No-op on the server side; client wiring is per-connection in ClientWorker.
-    }
+    public void setObserver(IObserver clientObserver) { }
 
     @Override
     public void logoutUser(String username, IObserver client) {
@@ -54,14 +56,7 @@ public class MasterService implements IService {
     }
 
     @Override
-    public List<Route> getAllRoutes() {
-        return routeService.getAllRoutes();
-    }
-
-    @Override
-    public List<Station> getAllStations() {
-        return stationService.getAllStations();
-    }
+    public List<Route> getAllRoutes() { return routeService.getAllRoutes(); }
 
     @Override
     public void addRoute(Route route) throws ValidationException, AlreadyExistsException {
@@ -82,16 +77,31 @@ public class MasterService implements IService {
     }
 
     @Override
-    public Station findStationById(int id) {
-        return stationService.findStationById(id);
-    }
-
-    // -------------------------------------------------------------------- Trains
+    public List<Station> getAllStations() { return stationService.getAllStations(); }
 
     @Override
-    public List<Train> getAllTrains() {
-        return trainService.getAllTrains();
+    public Station findStationById(int id) { return stationService.findStationById(id); }
+
+    @Override
+    public void addStation(Station station) throws AppException {
+        Station added = stationService.addStation(station);
+        loggedClients.forEach((k, obs) -> obs.stationAdded(DTOUtils.getDTO(added)));
     }
+
+    @Override
+    public void updateStation(Station station) throws AppException {
+        Station updated = stationService.updateStation(station);
+        loggedClients.forEach((k, obs) -> obs.stationUpdated(DTOUtils.getDTO(updated)));
+    }
+
+    @Override
+    public void removeStation(Station station) throws AppException {
+        stationService.deleteStation(station);
+        loggedClients.forEach((k, obs) -> obs.stationDeleted(DTOUtils.getDTO(station)));
+    }
+
+    @Override
+    public List<Train> getAllTrains() { return trainService.getAllTrains(); }
 
     @Override
     public void addTrain(Train train) throws AppException {
@@ -109,5 +119,26 @@ public class MasterService implements IService {
     public void removeTrain(Train train) throws AppException {
         trainService.deleteTrain(train);
         loggedClients.forEach((k, obs) -> obs.trainDeleted(DTOUtils.getDTO(train)));
+    }
+
+    @Override
+    public List<Schedule> getAllSchedules() { return scheduleService.getAllSchedules(); }
+
+    @Override
+    public void addSchedule(Schedule schedule) throws AppException {
+        Schedule added = scheduleService.addSchedule(schedule);
+        loggedClients.forEach((k, obs) -> obs.scheduleAdded(DTOUtils.getDTO(added)));
+    }
+
+    @Override
+    public void updateSchedule(Schedule schedule) throws AppException {
+        Schedule updated = scheduleService.updateSchedule(schedule);
+        loggedClients.forEach((k, obs) -> obs.scheduleUpdated(DTOUtils.getDTO(updated)));
+    }
+
+    @Override
+    public void removeSchedule(Schedule schedule) throws AppException {
+        scheduleService.deleteSchedule(schedule);
+        loggedClients.forEach((k, obs) -> obs.scheduleDeleted(DTOUtils.getDTO(schedule)));
     }
 }

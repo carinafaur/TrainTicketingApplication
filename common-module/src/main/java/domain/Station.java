@@ -50,4 +50,9 @@ public class Station implements Serializable {
     public void setStationCity(String stationCity) {
         this.stationCity = stationCity;
     }
+
+    @Override
+    public String toString() {
+        return stationCity + " · " + stationName;
+    }
 }

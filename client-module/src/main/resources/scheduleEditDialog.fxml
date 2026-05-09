@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Spinner?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="gui.ScheduleEditController"
+            stylesheets="@styles.css"
+            prefWidth="900" prefHeight="640">
+
+    <top>
+        <HBox styleClass="app-header" alignment="CENTER_LEFT" spacing="14">
+            <VBox spacing="2">
+                <Label styleClass="app-title" text="Schedule details"/>
+                <Label fx:id="dialogSubtitle" styleClass="app-subtitle" text="Train and route selected — fill in the stops and times."/>
+            </VBox>
+        </HBox>
+    </top>
+
+    <center>
+        <VBox spacing="14">
+            <padding><Insets top="20" right="24" bottom="20" left="24"/></padding>
+
+            <VBox styleClass="card" spacing="10">
+                <Label styleClass="card-title" text="Schedule meta"/>
+                <HBox spacing="14" alignment="CENTER_LEFT">
+                    <VBox spacing="4">
+                        <Label text="Train"/>
+                        <Label fx:id="trainLabel" text="—"/>
+                    </VBox>
+                    <VBox spacing="4">
+                        <Label text="Route"/>
+                        <Label fx:id="routeLabel" text="—"/>
+                    </VBox>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <VBox spacing="4">
+                        <Label text="Status"/>
+                        <ComboBox fx:id="statusCombo" prefWidth="160"/>
+                    </VBox>
+                    <VBox spacing="4">
+                        <Label text="Delay (min)"/>
+                        <Spinner fx:id="delaySpinner" prefWidth="100" editable="true"/>
+                    </VBox>
+                </HBox>
+            </VBox>
+
+            <VBox styleClass="card" spacing="10" VBox.vgrow="ALWAYS">
+                <HBox alignment="CENTER_LEFT" spacing="10">
+                    <Label styleClass="card-title" text="Stops"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Button styleClass="btn,btn-secondary" text="Add intermediate stop" onAction="#handleAddIntermediate"/>
+                </HBox>
+                <Label styleClass="card-hint"
+                       text="First and last stops are fixed by the route. Intermediate stops can be added or removed. Times use the date pickers and HH:mm format."/>
+
+                <!-- Header row -->
+                <HBox spacing="8" alignment="CENTER_LEFT" style="-fx-padding: 4 8 4 8; -fx-background-color: #f9fafb; -fx-background-radius: 6;">
+                    <Label text="#"            prefWidth="30"/>
+                    <Label text="Station"      prefWidth="220"/>
+                    <Label text="Arrival date" prefWidth="130"/>
+                    <Label text="Arr HH:mm"    prefWidth="80"/>
+                    <Label text="Dep date"     prefWidth="130"/>
+                    <Label text="Dep HH:mm"    prefWidth="80"/>
+                    <Label text=""             prefWidth="40"/>
+                </HBox>
+
+                <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS"
+                            style="-fx-background-color: transparent; -fx-background: transparent;">
+                    <VBox fx:id="stopsContainer" spacing="6"/>
+                </ScrollPane>
+
+                <Label fx:id="errorLabel" styleClass="status-error"/>
+            </VBox>
+        </VBox>
+    </center>
+
+    <bottom>
+        <HBox spacing="10" alignment="CENTER_RIGHT" style="-fx-padding: 16 24 20 24;">
+            <Button styleClass="btn,btn-secondary" text="Cancel" onAction="#handleCancel"/>
+            <Button styleClass="btn,btn-primary"   text="Save"   onAction="#handleSave"/>
+        </HBox>
+    </bottom>
+</BorderPane>
