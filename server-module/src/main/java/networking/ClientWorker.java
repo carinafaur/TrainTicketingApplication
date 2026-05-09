@@ -1,13 +1,9 @@
 package networking;
 
-import domain.Route;
-import domain.Station;
-import domain.User;
-import dtos.DTOUtils;
 import dtos.RouteDTO;
-import dtos.UserDTO;
-import exceptions.AppException;
-import exceptions.ValidationException;
+import dtos.TrainDTO;
+import networking.handlers.HandlerRegistry;
+import networking.handlers.RequestHandler;
 import service.IObserver;
 import service.IService;
 
@@ -16,9 +12,21 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 
+/**
+ * Per-connection worker. It owns the socket I/O, dispatches incoming requests
+ * via the {@link HandlerRegistry}, and pushes observer notifications back to
+ * the connected client. All business logic lives in the handlers and in
+ * {@link IService} (MasterService).
+ */
 public class ClientWorker implements Runnable, IObserver {
+
+    /**
+     * Single shared registry — handlers are stateless.
+     */
+    private static final HandlerRegistry REGISTRY = new HandlerRegistry();
+
     private final IService server;
-    private Socket connection;
+    private final Socket connection;
     private ObjectInputStream input;
     private ObjectOutputStream output;
     private volatile boolean connected;
@@ -40,8 +48,8 @@ public class ClientWorker implements Runnable, IObserver {
     public void run() {
         while (connected) {
             try {
-                Object request = input.readObject();
-                Response response = handleRequest((Request) request);
+                Request request = (Request) input.readObject();
+                Response response = dispatch(request);
                 if (response != null) {
                     sendResponse(response);
                 }
@@ -53,128 +61,52 @@ public class ClientWorker implements Runnable, IObserver {
         closeConnection();
     }
 
-    private Response handleRequest(Request request) {
-        if (request.getType() == RequestType.LOGIN) {
-            return handleLoginRequest(request);
-        } else if (request.getType() == RequestType.LOGOUT) {
-            return handleLogoutRequest(request);
-        } else if (request.getType() == RequestType.GET_ALL_ROUTES) {
-            return handleGetAllRoutes(request);
-        } else if (request.getType() == RequestType.GET_ALL_STATIONS) {
-            return handleGetAllStations(request);
-        } else if (request.getType() == RequestType.ADD_ROUTE) {
-            return handleAddRoute(request);
-        } else if (request.getType() == RequestType.UPDATE_ROUTE) {
-            return handleUpdateRoute(request);
-        }else if(request.getType()==RequestType.REMOVE_ROUTE){
-            return handleRemoveRoute(request);
+    private Response dispatch(Request request) {
+        RequestHandler handler = REGISTRY.get(request.getType());
+        if (handler == null) {
+            return Response.error("Unknown request type: " + request.getType());
         }
-        return null;
+        return handler.handle(request, server, this);
     }
 
-    private Response handleLogoutRequest(Request request) {
-        UserDTO dto = (UserDTO) request.getData();
-        try {
-            server.logoutUser(dto.getUsername(), this);
-            return Response.ok(null);
-        } catch (Exception e) {
-            return Response.error(e.getMessage());
-        }
-    }
-
-    private Response handleLoginRequest(Request request) {
-        UserDTO dto = (UserDTO) request.getData();
-        try {
-            User user = server.loginUser(dto.getUsername(), dto.getPassword(), this);
-            return Response.ok(user);
-        } catch (Exception e) {
-            return Response.error(e.getMessage());
-        }
-    }
-
-    private Response handleGetAllStations(Request request) {
-        return Response.ok(server.getAllStations());
-    }
+    // ---------------------------------------------- Observer push to client
 
     @Override
     public void routeAdded(RouteDTO newRoute) {
-        Response res = new Response(ResponseType.ADDED, newRoute);
-
-        try {
-            sendResponse(res);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        sendQuiet(new Response(ResponseType.ADDED, newRoute));
     }
 
     @Override
     public void routeDeleted(RouteDTO oldRoute) {
-        Response res = new Response(ResponseType.REMOVED, oldRoute);
-
-        try {
-            sendResponse(res);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        sendQuiet(new Response(ResponseType.REMOVED, oldRoute));
     }
 
     @Override
-    public void routeUpdated(RouteDTO updatedRoute) {
-        Response res = new Response(ResponseType.UPDATED, updatedRoute);
+    public void routeUpdated(RouteDTO upd) {
+        sendQuiet(new Response(ResponseType.UPDATED, upd));
+    }
 
+    @Override
+    public void trainAdded(TrainDTO t) {
+        sendQuiet(new Response(ResponseType.TRAIN_ADDED, t));
+    }
+
+    @Override
+    public void trainDeleted(TrainDTO t) {
+        sendQuiet(new Response(ResponseType.TRAIN_REMOVED, t));
+    }
+
+    @Override
+    public void trainUpdated(TrainDTO t) {
+        sendQuiet(new Response(ResponseType.TRAIN_UPDATED, t));
+    }
+
+    private void sendQuiet(Response res) {
         try {
             sendResponse(res);
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    private Response handleAddRoute(Request request) {
-        RouteDTO dto = (RouteDTO) request.getData();
-
-        Station start = server.findStationById(dto.getStartStationId());
-        Station end = server.findStationById(dto.getDestinationStationId());
-
-        Route route = new Route(start, end);
-
-        try {
-            server.addRoute(route);
-            return new Response(ResponseType.OK, dto);
-        } catch (AppException e) {
-            return new Response(ResponseType.ERROR, e.getMessage());
-        }
-    }
-
-    private Response handleUpdateRoute(Request request) {
-        RouteDTO dto = (RouteDTO) request.getData();
-        Station start = server.findStationById(dto.getStartStationId());
-        Station end = server.findStationById(dto.getDestinationStationId());
-        Route route = new Route(start, end);
-        route.setId(dto.getId());
-        try {
-            server.updateRoute(route);
-            return new Response(ResponseType.OK, dto);
-        } catch (AppException e) {
-            return new Response(ResponseType.ERROR, e.getMessage());
-        }
-    }
-
-    private Response handleRemoveRoute(Request request) {
-        RouteDTO dto = (RouteDTO) request.getData();
-        Station start = server.findStationById(dto.getStartStationId());
-        Station end = server.findStationById(dto.getDestinationStationId());
-        Route route = new Route(start, end);
-        route.setId(dto.getId());
-        try{
-            server.removeRoute(route);
-            return new Response(ResponseType.OK, dto);
-        } catch (AppException e) {
-            return new Response(ResponseType.ERROR, e.getMessage());
-        }
-    }
-
-    private Response handleGetAllRoutes(Request request) {
-        return Response.ok(server.getAllRoutes());
     }
 
     private void sendResponse(Response response) {
@@ -196,5 +128,4 @@ public class ClientWorker implements Runnable, IObserver {
             e.printStackTrace();
         }
     }
-
 }

@@ -1,8 +1,8 @@
 package gui;
 
-import domain.Route;
 import domain.User;
 import dtos.RouteDTO;
+import dtos.TrainDTO;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -17,17 +17,13 @@ public class CustomerController implements IObserver {
     private IService server;
     private User currentUser;
 
-    public void setServer(IService server) {
-        this.server = server;
-    }
-
-    public void setUser(User user) {
-        this.currentUser = user;
-    }
+    public void setServer(IService server) { this.server = server; }
+    public void setUser(User user) { this.currentUser = user; }
 
     public static void show(IService server, User user) {
         try {
-            FXMLLoader loader = new FXMLLoader(CustomerController.class.getResource("/customerView.fxml"));            Parent root = loader.load();
+            FXMLLoader loader = new FXMLLoader(CustomerController.class.getResource("/customerView.fxml"));
+            Parent root = loader.load();
 
             CustomerController controller = loader.getController();
             controller.setServer(server);
@@ -35,10 +31,9 @@ public class CustomerController implements IObserver {
             controller.setUser(user);
 
             Stage stage = new Stage();
-            stage.setTitle("Train Management - " + user.getUsername());
+            stage.setTitle("Train Ticketing — Customer · " + user.getUsername());
             stage.setScene(new Scene(root));
             stage.show();
-
         } catch (IOException e) {
             e.printStackTrace();
             showError(e.getMessage());
@@ -53,18 +48,11 @@ public class CustomerController implements IObserver {
         alert.showAndWait();
     }
 
-    @Override
-    public void routeAdded(RouteDTO newRoute) {
+    @Override public void routeAdded(RouteDTO newRoute) {}
+    @Override public void routeDeleted(RouteDTO oldRoute) {}
+    @Override public void routeUpdated(RouteDTO updatedRoute) {}
 
-    }
-
-    @Override
-    public void routeDeleted(RouteDTO oldRoute) {
-
-    }
-
-    @Override
-    public void routeUpdated(RouteDTO updatedRoute) {
-
-    }
+    @Override public void trainAdded(TrainDTO newTrain) {}
+    @Override public void trainDeleted(TrainDTO oldTrain) {}
+    @Override public void trainUpdated(TrainDTO updatedTrain) {}
 }

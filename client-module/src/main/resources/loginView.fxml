@@ -1,19 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<?import javafx.geometry.Insets?>
 
-<VBox alignment="CENTER" spacing="15.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="gui.LoginController">
-    <padding>
-        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
-    </padding>
+<StackPane xmlns="http://javafx.com/javafx/17"
+           xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="gui.LoginController"
+           stylesheets="@styles.css"
+           prefWidth="420" prefHeight="460">
+    <padding><Insets top="32" right="32" bottom="32" left="32"/></padding>
 
-    <Label text="Login" style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
+    <VBox styleClass="card" alignment="TOP_CENTER" spacing="14" maxWidth="360" maxHeight="380">
+        <padding><Insets top="28" right="28" bottom="28" left="28"/></padding>
 
-    <TextField fx:id="usernameField" promptText="Username"/>
-    <PasswordField fx:id="passwordField" promptText="Password"/>
+        <Label text="🚆 Train Ticketing" style="-fx-font-size: 22px; -fx-font-weight: 700; -fx-text-fill: #4f46e5;"/>
+        <Label styleClass="card-hint" text="Sign in with your account to continue."/>
 
-    <Button text="Login" onAction="#handleLogin" maxWidth="Infinity" style="-fx-background-color: #2196F3; -fx-text-fill: white;"/>
-</VBox>
+        <VBox spacing="6">
+            <Label text="Username"/>
+            <TextField fx:id="usernameField" promptText="username"/>
+        </VBox>
+
+        <VBox spacing="6">
+            <Label text="Password"/>
+            <PasswordField fx:id="passwordField" promptText="password"/>
+        </VBox>
+
+        <Button text="Sign in"
+                onAction="#handleLogin"
+                styleClass="btn,btn-primary"
+                maxWidth="Infinity"/>
+    </VBox>
+</StackPane>

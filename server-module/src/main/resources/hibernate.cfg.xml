@@ -3,5 +3,6 @@
         <mapping class="domain.User"/>
         <mapping class="domain.Route"/>
         <mapping class="domain.Station"/>
+        <mapping class="domain.Train"/>
     </session-factory>
 </hibernate-configuration>
