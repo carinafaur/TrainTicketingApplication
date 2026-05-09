@@ -5,7 +5,11 @@ import domain.Schedule;
 import domain.Station;
 import domain.Train;
 import domain.User;
+import dtos.AvailableScheduleDTO;
+import dtos.BookingDTO;
+import dtos.BookingRequestDTO;
 import dtos.DTOUtils;
+import dtos.JourneySearchDTO;
 import dtos.RouteDTO;
 import dtos.ScheduleDTO;
 import dtos.StationDTO;
@@ -189,6 +193,51 @@ public class ServerProxy implements IService {
         sendRequestExpectingOk(new Request(RequestType.REMOVE_SCHEDULE, dto));
     }
 
+    @Override
+    public List<AvailableScheduleDTO> searchAvailableSchedules(JourneySearchDTO criteria) {
+        try {
+            checkConnection();
+            sendRequest(new Request(RequestType.SEARCH_AVAILABLE, criteria));
+            Response res = readResponse();
+            if (res.getType() == ResponseType.ERROR) throw new AppException(res.getErrorMessage());
+            @SuppressWarnings("unchecked")
+            List<AvailableScheduleDTO> list = (List<AvailableScheduleDTO>) res.getData();
+            return list == null ? List.of() : list;
+        } catch (AppException e) {
+            System.err.println("Search error: " + e.getMessage());
+            return List.of();
+        }
+    }
+
+    @Override
+    public BookingDTO bookSeats(BookingRequestDTO request) throws AppException {
+        sendRequest(new Request(RequestType.BOOK_SEATS, request));
+        Response res = readResponse();
+        if (res.getType() == ResponseType.ERROR) throw new AppException(res.getErrorMessage());
+        return (BookingDTO) res.getData();
+    }
+
+    @Override
+    public List<BookingDTO> getAllBookings() {
+        return fetchList(RequestType.GET_ALL_BOOKINGS, "bookings");
+    }
+
+    @Override
+    public List<BookingDTO> getBookingsForUser(String username) {
+        try {
+            checkConnection();
+            sendRequest(new Request(RequestType.GET_MY_BOOKINGS, username));
+            Response res = readResponse();
+            if (res.getType() == ResponseType.ERROR) throw new AppException(res.getErrorMessage());
+            @SuppressWarnings("unchecked")
+            List<BookingDTO> list = (List<BookingDTO>) res.getData();
+            return list == null ? List.of() : list;
+        } catch (AppException e) {
+            System.err.println("Error getting my bookings: " + e.getMessage());
+            return List.of();
+        }
+    }
+
     @SuppressWarnings("unchecked")
     private <T> List<T> fetchList(RequestType type, String label) {
         try {
@@ -289,6 +338,7 @@ public class ServerProxy implements IService {
                             case SCHEDULE_ADDED:    if (clientObserver != null) clientObserver.scheduleAdded((ScheduleDTO) res.getData()); break;
                             case SCHEDULE_UPDATED:  if (clientObserver != null) clientObserver.scheduleUpdated((ScheduleDTO) res.getData()); break;
                             case SCHEDULE_REMOVED:  if (clientObserver != null) clientObserver.scheduleDeleted((ScheduleDTO) res.getData()); break;
+                            case BOOKING_ADDED:     if (clientObserver != null) clientObserver.bookingAdded((BookingDTO) res.getData()); break;
                             default:                responses.put(res);
                         }
                     }

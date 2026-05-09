@@ -216,6 +216,47 @@
                 </VBox>
             </Tab>
 
+            <!-- ====================== BOOKINGS ====================== -->
+            <Tab text="Bookings">
+                <VBox spacing="16">
+                    <padding><Insets top="20" right="24" bottom="20" left="24"/></padding>
+
+                    <VBox styleClass="card" spacing="10">
+                        <Label styleClass="card-title" text="Filter"/>
+                        <HBox spacing="14" alignment="CENTER_LEFT">
+                            <VBox spacing="4">
+                                <Label text="Train"/>
+                                <ComboBox fx:id="bookingsTrainFilter" prefWidth="220" promptText="All trains"/>
+                            </VBox>
+                            <VBox spacing="4" alignment="BOTTOM_LEFT">
+                                <Label text=" "/>
+                                <Button styleClass="btn,btn-secondary" text="Clear filter" onAction="#handleClearBookingsFilter"/>
+                            </VBox>
+                        </HBox>
+                    </VBox>
+
+                    <VBox styleClass="card" spacing="10" VBox.vgrow="ALWAYS">
+                        <Label styleClass="card-title" text="All bookings"/>
+                        <Label fx:id="bookingsHint" styleClass="card-hint"/>
+                        <TableView fx:id="bookingsTable" VBox.vgrow="ALWAYS">
+                            <columns>
+                                <TableColumn fx:id="bookIdColumn"        prefWidth="60"  text="ID"/>
+                                <TableColumn fx:id="bookUserColumn"      prefWidth="120" text="User"/>
+                                <TableColumn fx:id="bookTrainColumn"     prefWidth="100" text="Train"/>
+                                <TableColumn fx:id="bookFromColumn"      prefWidth="160" text="From"/>
+                                <TableColumn fx:id="bookToColumn"        prefWidth="160" text="To"/>
+                                <TableColumn fx:id="bookDepartureColumn" prefWidth="140" text="Departure"/>
+                                <TableColumn fx:id="bookSeatsColumn"     prefWidth="80"  text="Seats"/>
+                                <TableColumn fx:id="bookBookedAtColumn"  prefWidth="140" text="Booked at"/>
+                            </columns>
+                            <columnResizePolicy>
+                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                            </columnResizePolicy>
+                        </TableView>
+                    </VBox>
+                </VBox>
+            </Tab>
+
         </TabPane>
     </center>
 </BorderPane>

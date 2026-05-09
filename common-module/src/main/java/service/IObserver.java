@@ -1,5 +1,6 @@
 package service;
 
+import dtos.BookingDTO;
 import dtos.RouteDTO;
 import dtos.ScheduleDTO;
 import dtos.StationDTO;
@@ -30,4 +31,6 @@ public interface IObserver {
     void scheduleAdded(ScheduleDTO newSchedule);
     void scheduleDeleted(ScheduleDTO oldSchedule);
     void scheduleUpdated(ScheduleDTO updatedSchedule);
+
+    void bookingAdded(BookingDTO newBooking);
 }

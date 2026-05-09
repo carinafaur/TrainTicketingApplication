@@ -4,6 +4,7 @@ import domain.Route;
 import domain.Station;
 import domain.Train;
 import domain.User;
+import dtos.BookingDTO;
 import dtos.RouteDTO;
 import dtos.ScheduleDTO;
 import dtos.StationDTO;
@@ -41,6 +42,8 @@ public class AdminController implements IObserver {
     private final ObservableList<Station> stationsModel = FXCollections.observableArrayList();
     private final ObservableList<Train> trainsModel = FXCollections.observableArrayList();
     private final ObservableList<ScheduleDTO> schedulesModel = FXCollections.observableArrayList();
+    private final ObservableList<BookingDTO> allBookingsModel = FXCollections.observableArrayList();
+    private final ObservableList<BookingDTO> bookingsModel = FXCollections.observableArrayList();
 
     @FXML private TableView<Route> routesTable;
     @FXML private TableColumn<Route, Integer> routeIdColumn;
@@ -78,6 +81,18 @@ public class AdminController implements IObserver {
     @FXML private TableColumn<ScheduleDTO, Integer> schedDelayColumn;
     @FXML private TableColumn<ScheduleDTO, String>  schedStatusColumn;
     @FXML private Label scheduleMessageLabel;
+
+    @FXML private ComboBox<Train> bookingsTrainFilter;
+    @FXML private TableView<BookingDTO> bookingsTable;
+    @FXML private TableColumn<BookingDTO, Integer> bookIdColumn;
+    @FXML private TableColumn<BookingDTO, String>  bookUserColumn;
+    @FXML private TableColumn<BookingDTO, String>  bookTrainColumn;
+    @FXML private TableColumn<BookingDTO, String>  bookFromColumn;
+    @FXML private TableColumn<BookingDTO, String>  bookToColumn;
+    @FXML private TableColumn<BookingDTO, String>  bookDepartureColumn;
+    @FXML private TableColumn<BookingDTO, Integer> bookSeatsColumn;
+    @FXML private TableColumn<BookingDTO, String>  bookBookedAtColumn;
+    @FXML private Label bookingsHint;
 
     @FXML private Label welcomeLabel;
 
@@ -179,6 +194,27 @@ public class AdminController implements IObserver {
         schedStatusColumn.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getStatus()));
 
         schedulesTable.setItems(schedulesModel);
+
+        bookingsTrainFilter.setItems(trainsModel);
+        bookingsTrainFilter.setConverter(new StringConverter<>() {
+            @Override public String toString(Train t) { return t == null ? "All trains" : t.getTrainNumber(); }
+            @Override public Train fromString(String s) { return null; }
+        });
+        bookingsTrainFilter.valueProperty().addListener((obs, oldV, newV) -> applyBookingsFilter());
+
+        bookIdColumn.setCellValueFactory(c -> new SimpleIntegerProperty(c.getValue().getId()).asObject());
+        bookUserColumn.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getUsername()));
+        bookTrainColumn.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getTrainNumber()));
+        bookFromColumn.setCellValueFactory(c -> new SimpleStringProperty(
+                c.getValue().getStartStationCity() + " · " + c.getValue().getStartStationName()));
+        bookToColumn.setCellValueFactory(c -> new SimpleStringProperty(
+                c.getValue().getEndStationCity() + " · " + c.getValue().getEndStationName()));
+        bookDepartureColumn.setCellValueFactory(c -> new SimpleStringProperty(
+                c.getValue().getScheduleDeparture() == null ? "" : c.getValue().getScheduleDeparture().format(UI_FMT)));
+        bookSeatsColumn.setCellValueFactory(c -> new SimpleIntegerProperty(c.getValue().getSeatsReserved()).asObject());
+        bookBookedAtColumn.setCellValueFactory(c -> new SimpleStringProperty(
+                c.getValue().getBookingDate() == null ? "" : c.getValue().getBookingDate().format(UI_FMT)));
+        bookingsTable.setItems(bookingsModel);
     }
 
     public static void show(IService server, User user) {
@@ -213,6 +249,7 @@ public class AdminController implements IObserver {
         loadStations();
         loadTrains();
         loadSchedules();
+        loadBookings();
     }
 
     private void loadRoutes()    { routesModel.setAll(server.getAllRoutes()); }
@@ -222,6 +259,28 @@ public class AdminController implements IObserver {
         if (server instanceof ServerProxy) {
             schedulesModel.setAll(((ServerProxy) server).getAllScheduleDTOs());
         }
+    }
+    private void loadBookings() {
+        allBookingsModel.setAll(server.getAllBookings());
+        applyBookingsFilter();
+    }
+
+    private void applyBookingsFilter() {
+        Train filter = bookingsTrainFilter == null ? null : bookingsTrainFilter.getValue();
+        if (filter == null) {
+            bookingsModel.setAll(allBookingsModel);
+        } else {
+            bookingsModel.setAll(allBookingsModel.filtered(b -> filter.getTrainNumber().equals(b.getTrainNumber())));
+        }
+        if (bookingsHint != null) {
+            bookingsHint.setText(bookingsModel.size() + " booking(s)"
+                    + (filter == null ? "" : " for train " + filter.getTrainNumber()));
+        }
+    }
+
+    @FXML
+    public void handleClearBookingsFilter() {
+        if (bookingsTrainFilter != null) bookingsTrainFilter.setValue(null);
     }
 
     private void selectStationInCombo(ComboBox<Station> combo, Station target) {
@@ -490,6 +549,8 @@ public class AdminController implements IObserver {
     @Override public void scheduleAdded(ScheduleDTO newS)       { Platform.runLater(this::loadSchedules); }
     @Override public void scheduleDeleted(ScheduleDTO oldS)     { Platform.runLater(() -> schedulesModel.removeIf(s -> s.getId() == oldS.getId())); }
     @Override public void scheduleUpdated(ScheduleDTO updS)     { Platform.runLater(this::loadSchedules); }
+
+    @Override public void bookingAdded(BookingDTO newBooking)   { Platform.runLater(this::loadBookings); }
 
     private void setOk(Label l, String msg) {
         if (l == null) return;

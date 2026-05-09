@@ -6,5 +6,6 @@
         <mapping class="domain.Train"/>
         <mapping class="domain.Schedule"/>
         <mapping class="domain.ScheduleStop"/>
+        <mapping class="domain.Booking"/>
     </session-factory>
 </hibernate-configuration>

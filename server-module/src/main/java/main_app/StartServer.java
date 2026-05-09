@@ -2,12 +2,15 @@ package main_app;
 
 import data.HibernateUtils;
 import networking.ConcurrentServer;
+import repository.BookingRepository;
 import repository.RouteRepository;
 import repository.ScheduleRepository;
 import repository.StationRepository;
 import repository.TrainRepository;
 import repository.UserRepository;
+import service.EmailConfig;
 import service.*;
+import validators.BookingValidator;
 import validators.RouteValidator;
 import validators.ScheduleValidator;
 import validators.StationValidator;
@@ -37,8 +40,17 @@ public class StartServer {
             ScheduleValidator scheduleValidator = new ScheduleValidator();
             ScheduleService scheduleService = new ScheduleService(scheduleRepo, scheduleValidator);
 
+            BookingRepository bookingRepo = new BookingRepository();
+            BookingValidator bookingValidator = new BookingValidator();
+            EmailService emailService = new EmailService(
+                    EmailConfig.loadFromClasspath("email.properties"));
+            BookingService bookingService = new BookingService(
+                    bookingRepo, scheduleRepo, stationRepo, userRepo,
+                    bookingValidator, emailService);
+
             IService service = new MasterService(
-                    userService, routeService, stationService, trainService, scheduleService);
+                    userService, routeService, stationService,
+                    trainService, scheduleService, bookingService);
 
             int port = 55555;
             ConcurrentServer server = new ConcurrentServer(port, service);

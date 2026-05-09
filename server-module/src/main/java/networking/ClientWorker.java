@@ -1,5 +1,6 @@
 package networking;
 
+import dtos.BookingDTO;
 import dtos.RouteDTO;
 import dtos.ScheduleDTO;
 import dtos.StationDTO;
@@ -120,6 +121,11 @@ public class ClientWorker implements Runnable, IObserver {
     @Override
     public void trainUpdated(TrainDTO t) {
         sendQuiet(new Response(ResponseType.TRAIN_UPDATED, t));
+    }
+
+    @Override
+    public void bookingAdded(BookingDTO newBooking) {
+        sendQuiet(new Response(ResponseType.BOOKING_ADDED, newBooking));
     }
 
     private void sendQuiet(Response res) {

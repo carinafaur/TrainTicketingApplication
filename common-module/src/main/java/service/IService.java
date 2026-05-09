@@ -5,6 +5,10 @@ import domain.Schedule;
 import domain.Station;
 import domain.Train;
 import domain.User;
+import dtos.AvailableScheduleDTO;
+import dtos.BookingDTO;
+import dtos.BookingRequestDTO;
+import dtos.JourneySearchDTO;
 import exceptions.AppException;
 
 import java.util.List;
@@ -40,4 +44,9 @@ public interface IService {
     void addSchedule(Schedule schedule) throws AppException;
     void updateSchedule(Schedule schedule) throws AppException;
     void removeSchedule(Schedule schedule) throws AppException;
+
+    List<AvailableScheduleDTO> searchAvailableSchedules(JourneySearchDTO criteria);
+    BookingDTO bookSeats(BookingRequestDTO request) throws AppException;
+    List<BookingDTO> getAllBookings();
+    List<BookingDTO> getBookingsForUser(String username);
 }

@@ -1,11 +1,16 @@
 package service;
 
+import domain.Booking;
 import domain.Route;
 import domain.Schedule;
 import domain.Station;
 import domain.Train;
 import domain.User;
+import dtos.AvailableScheduleDTO;
+import dtos.BookingDTO;
+import dtos.BookingRequestDTO;
 import dtos.DTOUtils;
+import dtos.JourneySearchDTO;
 import exceptions.AlreadyExistsException;
 import exceptions.AppException;
 import exceptions.NotFoundException;
@@ -21,18 +26,21 @@ public class MasterService implements IService {
     private final StationService stationService;
     private final TrainService trainService;
     private final ScheduleService scheduleService;
+    private final BookingService bookingService;
     private final Map<String, IObserver> loggedClients = new ConcurrentHashMap<>();
 
     public MasterService(UserService userService,
                          RouteService routeService,
                          StationService stationService,
                          TrainService trainService,
-                         ScheduleService scheduleService) {
+                         ScheduleService scheduleService,
+                         BookingService bookingService) {
         this.userService = userService;
         this.routeService = routeService;
         this.stationService = stationService;
         this.trainService = trainService;
         this.scheduleService = scheduleService;
+        this.bookingService = bookingService;
     }
 
     @Override
@@ -140,5 +148,28 @@ public class MasterService implements IService {
     public void removeSchedule(Schedule schedule) throws AppException {
         scheduleService.deleteSchedule(schedule);
         loggedClients.forEach((k, obs) -> obs.scheduleDeleted(DTOUtils.getDTO(schedule)));
+    }
+
+    @Override
+    public List<AvailableScheduleDTO> searchAvailableSchedules(JourneySearchDTO criteria) {
+        return bookingService.search(criteria);
+    }
+
+    @Override
+    public BookingDTO bookSeats(BookingRequestDTO request) throws AppException {
+        Booking saved = bookingService.book(request);
+        BookingDTO dto = DTOUtils.getDTO(saved);
+        loggedClients.forEach((k, obs) -> obs.bookingAdded(dto));
+        return dto;
+    }
+
+    @Override
+    public List<BookingDTO> getAllBookings() {
+        return bookingService.getAllBookings();
+    }
+
+    @Override
+    public List<BookingDTO> getBookingsForUser(String username) {
+        return bookingService.getBookingsForUser(username);
     }
 }

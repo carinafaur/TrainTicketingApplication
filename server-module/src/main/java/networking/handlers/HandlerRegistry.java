@@ -35,6 +35,11 @@ public class HandlerRegistry {
         m.put(RequestType.UPDATE_SCHEDULE,   new UpdateScheduleHandler());
         m.put(RequestType.REMOVE_SCHEDULE,   new RemoveScheduleHandler());
 
+        m.put(RequestType.SEARCH_AVAILABLE,  new SearchAvailableHandler());
+        m.put(RequestType.BOOK_SEATS,        new BookSeatsHandler());
+        m.put(RequestType.GET_ALL_BOOKINGS,  new GetAllBookingsHandler());
+        m.put(RequestType.GET_MY_BOOKINGS,   new GetMyBookingsHandler());
+
         this.handlers = Map.copyOf(m);
     }
 

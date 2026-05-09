@@ -1,5 +1,6 @@
 package dtos;
 
+import domain.Booking;
 import domain.Route;
 import domain.Schedule;
 import domain.ScheduleStop;
@@ -70,6 +71,31 @@ public class DTOUtils {
                 s.getDelayMinutes(),
                 s.getStatus(),
                 stopDTOs
+        );
+    }
+
+    public static BookingDTO getDTO(Booking b) {
+        Schedule s = b.getSchedule();
+        Train t = s == null ? null : s.getTrain();
+        Station start = b.getStartStation();
+        Station end = b.getEndStation();
+        User u = b.getUser();
+        return new BookingDTO(
+                b.getId(),
+                u == null ? 0 : u.getId(),
+                u == null ? null : u.getUsername(),
+                s == null ? 0 : s.getId(),
+                t == null ? null : t.getTrainNumber(),
+                s == null ? null : s.getDepartureTime(),
+                s == null ? null : s.getArrivalTime(),
+                start == null ? 0 : start.getId(),
+                start == null ? null : start.getStationName(),
+                start == null ? null : start.getStationCity(),
+                end == null ? 0 : end.getId(),
+                end == null ? null : end.getStationName(),
+                end == null ? null : end.getStationCity(),
+                b.getSeatsReserved(),
+                b.getBookingDate()
         );
     }
 }

@@ -1,14 +1,115 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import java.lang.*?>
-<?import java.util.*?>
-<?import javafx.scene.*?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Spinner?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
 
-<AnchorPane xmlns="http://javafx.com/javafx"
-            xmlns:fx="http://javafx.com/fxml"
+<BorderPane xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="gui.CustomerController"
-            prefHeight="400.0" prefWidth="600.0">
+            stylesheets="@styles.css"
+            prefWidth="1100" prefHeight="760">
 
-</AnchorPane>
+    <top>
+        <HBox styleClass="app-header" alignment="CENTER_LEFT" spacing="14">
+            <VBox spacing="2">
+                <Label styleClass="app-title" text="Customer Portal" />
+                <Label fx:id="welcomeLabel" styleClass="app-subtitle" text="Search journeys and book tickets" />
+            </VBox>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button styleClass="btn,btn-ghost" text="Logout" onAction="#handleLogout"/>
+        </HBox>
+    </top>
+
+    <center>
+        <VBox spacing="16">
+            <padding><Insets top="20" right="24" bottom="20" left="24"/></padding>
+
+            <VBox styleClass="card" spacing="12">
+                <Label styleClass="card-title" text="Search a journey"/>
+                <Label styleClass="card-hint" text="Pick where you want to leave from, where you want to go, and a date."/>
+                <HBox spacing="14" alignment="CENTER_LEFT">
+                    <VBox spacing="4">
+                        <Label text="From"/>
+                        <ComboBox fx:id="searchFromCombo" prefWidth="220" promptText="Select start"/>
+                    </VBox>
+                    <VBox spacing="4">
+                        <Label text="To"/>
+                        <ComboBox fx:id="searchToCombo" prefWidth="220" promptText="Select destination"/>
+                    </VBox>
+                    <VBox spacing="4">
+                        <Label text="Date"/>
+                        <DatePicker fx:id="searchDate" prefWidth="160"/>
+                    </VBox>
+                    <VBox spacing="4" alignment="BOTTOM_LEFT">
+                        <Label text=" "/>
+                        <Button styleClass="btn,btn-primary" text="Search" onAction="#handleSearch"/>
+                    </VBox>
+                </HBox>
+            </VBox>
+
+            <VBox styleClass="card" spacing="10" VBox.vgrow="ALWAYS">
+                <Label styleClass="card-title" text="Available trains"/>
+                <Label fx:id="resultsHint" styleClass="card-hint" text="Pick a search above to see results."/>
+                <TableView fx:id="resultsTable" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="resTrainColumn"     prefWidth="100" text="Train"/>
+                        <TableColumn fx:id="resFromColumn"      prefWidth="150" text="From"/>
+                        <TableColumn fx:id="resDepartureColumn" prefWidth="140" text="Departure"/>
+                        <TableColumn fx:id="resToColumn"        prefWidth="150" text="To"/>
+                        <TableColumn fx:id="resArrivalColumn"   prefWidth="140" text="Arrival"/>
+                        <TableColumn fx:id="resSeatsColumn"     prefWidth="90"  text="Seats free"/>
+                        <TableColumn fx:id="resStatusColumn"    prefWidth="100" text="Status"/>
+                    </columns>
+                    <columnResizePolicy>
+                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                    </columnResizePolicy>
+                </TableView>
+
+                <HBox spacing="14" alignment="CENTER_LEFT">
+                    <VBox spacing="4">
+                        <Label text="Seats"/>
+                        <Spinner fx:id="seatsSpinner" prefWidth="100" editable="true"/>
+                    </VBox>
+                    <VBox spacing="4">
+                        <Label text="Confirmation email"/>
+                        <TextField fx:id="emailField" prefWidth="280" promptText="you@example.com"/>
+                    </VBox>
+                    <VBox spacing="4" alignment="BOTTOM_LEFT">
+                        <Label text=" "/>
+                        <Button styleClass="btn,btn-success" text="Book selected" onAction="#handleBook"/>
+                    </VBox>
+                </HBox>
+                <Label fx:id="bookingMessageLabel" styleClass="status-ok"/>
+            </VBox>
+
+            <VBox styleClass="card" spacing="10" VBox.vgrow="ALWAYS">
+                <Label styleClass="card-title" text="My bookings"/>
+                <TableView fx:id="myBookingsTable" prefHeight="220">
+                    <columns>
+                        <TableColumn fx:id="myIdColumn"        prefWidth="60"  text="ID"/>
+                        <TableColumn fx:id="myTrainColumn"     prefWidth="100" text="Train"/>
+                        <TableColumn fx:id="myFromColumn"      prefWidth="150" text="From"/>
+                        <TableColumn fx:id="myToColumn"        prefWidth="150" text="To"/>
+                        <TableColumn fx:id="myDepartureColumn" prefWidth="140" text="Departure"/>
+                        <TableColumn fx:id="mySeatsColumn"     prefWidth="80"  text="Seats"/>
+                        <TableColumn fx:id="myBookedAtColumn"  prefWidth="140" text="Booked at"/>
+                    </columns>
+                    <columnResizePolicy>
+                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                    </columnResizePolicy>
+                </TableView>
+            </VBox>
+        </VBox>
+    </center>
+</BorderPane>
