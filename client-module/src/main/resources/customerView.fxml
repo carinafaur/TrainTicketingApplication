@@ -6,8 +6,11 @@
 <?import javafx.scene.control.DatePicker?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.Spinner?>
+<?import javafx.scene.control.Tab?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
@@ -18,7 +21,7 @@
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="gui.CustomerController"
             stylesheets="@styles.css"
-            prefWidth="1100" prefHeight="760">
+            prefWidth="1100" prefHeight="780">
 
     <top>
         <HBox styleClass="app-header" alignment="CENTER_LEFT" spacing="14">
@@ -32,84 +35,140 @@
     </top>
 
     <center>
-        <VBox spacing="16">
-            <padding><Insets top="20" right="24" bottom="20" left="24"/></padding>
+        <TabPane tabClosingPolicy="UNAVAILABLE">
 
-            <VBox styleClass="card" spacing="12">
-                <Label styleClass="card-title" text="Search a journey"/>
-                <Label styleClass="card-hint" text="Pick where you want to leave from, where you want to go, and a date."/>
-                <HBox spacing="14" alignment="CENTER_LEFT">
-                    <VBox spacing="4">
-                        <Label text="From"/>
-                        <ComboBox fx:id="searchFromCombo" prefWidth="220" promptText="Select start"/>
-                    </VBox>
-                    <VBox spacing="4">
-                        <Label text="To"/>
-                        <ComboBox fx:id="searchToCombo" prefWidth="220" promptText="Select destination"/>
-                    </VBox>
-                    <VBox spacing="4">
-                        <Label text="Date"/>
-                        <DatePicker fx:id="searchDate" prefWidth="160"/>
-                    </VBox>
-                    <VBox spacing="4" alignment="BOTTOM_LEFT">
-                        <Label text=" "/>
-                        <Button styleClass="btn,btn-primary" text="Search" onAction="#handleSearch"/>
-                    </VBox>
-                </HBox>
-            </VBox>
+            <Tab text="Book a ticket">
+                <VBox spacing="16">
+                    <padding><Insets top="20" right="24" bottom="20" left="24"/></padding>
 
-            <VBox styleClass="card" spacing="10" VBox.vgrow="ALWAYS">
-                <Label styleClass="card-title" text="Available trains"/>
-                <Label fx:id="resultsHint" styleClass="card-hint" text="Pick a search above to see results."/>
-                <TableView fx:id="resultsTable" VBox.vgrow="ALWAYS">
-                    <columns>
-                        <TableColumn fx:id="resTrainColumn"     prefWidth="100" text="Train"/>
-                        <TableColumn fx:id="resFromColumn"      prefWidth="150" text="From"/>
-                        <TableColumn fx:id="resDepartureColumn" prefWidth="140" text="Departure"/>
-                        <TableColumn fx:id="resToColumn"        prefWidth="150" text="To"/>
-                        <TableColumn fx:id="resArrivalColumn"   prefWidth="140" text="Arrival"/>
-                        <TableColumn fx:id="resSeatsColumn"     prefWidth="90"  text="Seats free"/>
-                        <TableColumn fx:id="resStatusColumn"    prefWidth="100" text="Status"/>
-                    </columns>
-                    <columnResizePolicy>
-                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
-                    </columnResizePolicy>
-                </TableView>
+                    <VBox styleClass="card" spacing="12">
+                        <Label styleClass="card-title" text="Search a direct journey"/>
+                        <Label styleClass="card-hint" text="Pick where you want to leave from, where you want to go, and a date."/>
+                        <HBox spacing="14" alignment="CENTER_LEFT">
+                            <VBox spacing="4">
+                                <Label text="From"/>
+                                <ComboBox fx:id="searchFromCombo" prefWidth="220" promptText="Select start"/>
+                            </VBox>
+                            <VBox spacing="4">
+                                <Label text="To"/>
+                                <ComboBox fx:id="searchToCombo" prefWidth="220" promptText="Select destination"/>
+                            </VBox>
+                            <VBox spacing="4">
+                                <Label text="Date"/>
+                                <DatePicker fx:id="searchDate" prefWidth="160"/>
+                            </VBox>
+                            <VBox spacing="4" alignment="BOTTOM_LEFT">
+                                <Label text=" "/>
+                                <Button styleClass="btn,btn-primary" text="Search" onAction="#handleSearch"/>
+                            </VBox>
+                        </HBox>
+                    </VBox>
 
-                <HBox spacing="14" alignment="CENTER_LEFT">
-                    <VBox spacing="4">
-                        <Label text="Seats"/>
-                        <Spinner fx:id="seatsSpinner" prefWidth="100" editable="true"/>
-                    </VBox>
-                    <VBox spacing="4">
-                        <Label text="Confirmation email"/>
-                        <TextField fx:id="emailField" prefWidth="280" promptText="you@example.com"/>
-                    </VBox>
-                    <VBox spacing="4" alignment="BOTTOM_LEFT">
-                        <Label text=" "/>
-                        <Button styleClass="btn,btn-success" text="Book selected" onAction="#handleBook"/>
-                    </VBox>
-                </HBox>
-                <Label fx:id="bookingMessageLabel" styleClass="status-ok"/>
-            </VBox>
+                    <VBox styleClass="card" spacing="10" VBox.vgrow="ALWAYS">
+                        <Label styleClass="card-title" text="Available trains"/>
+                        <Label fx:id="resultsHint" styleClass="card-hint" text="Pick a search above to see results."/>
+                        <TableView fx:id="resultsTable" VBox.vgrow="ALWAYS">
+                            <columns>
+                                <TableColumn fx:id="resTrainColumn"     prefWidth="100" text="Train"/>
+                                <TableColumn fx:id="resFromColumn"      prefWidth="150" text="From"/>
+                                <TableColumn fx:id="resDepartureColumn" prefWidth="140" text="Departure"/>
+                                <TableColumn fx:id="resToColumn"        prefWidth="150" text="To"/>
+                                <TableColumn fx:id="resArrivalColumn"   prefWidth="140" text="Arrival"/>
+                                <TableColumn fx:id="resSeatsColumn"     prefWidth="90"  text="Seats free"/>
+                                <TableColumn fx:id="resStatusColumn"    prefWidth="100" text="Status"/>
+                            </columns>
+                            <columnResizePolicy>
+                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                            </columnResizePolicy>
+                        </TableView>
 
-            <VBox styleClass="card" spacing="10" VBox.vgrow="ALWAYS">
-                <Label styleClass="card-title" text="My bookings"/>
-                <TableView fx:id="myBookingsTable" prefHeight="220">
-                    <columns>
-                        <TableColumn fx:id="myIdColumn"        prefWidth="60"  text="ID"/>
-                        <TableColumn fx:id="myTrainColumn"     prefWidth="100" text="Train"/>
-                        <TableColumn fx:id="myFromColumn"      prefWidth="150" text="From"/>
-                        <TableColumn fx:id="myToColumn"        prefWidth="150" text="To"/>
-                        <TableColumn fx:id="myDepartureColumn" prefWidth="140" text="Departure"/>
-                        <TableColumn fx:id="mySeatsColumn"     prefWidth="80"  text="Seats"/>
-                        <TableColumn fx:id="myBookedAtColumn"  prefWidth="140" text="Booked at"/>
-                    </columns>
-                    <columnResizePolicy>
-                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
-                    </columnResizePolicy>
-                </TableView>
-            </VBox>
-        </VBox>
+                        <HBox spacing="14" alignment="CENTER_LEFT">
+                            <VBox spacing="4">
+                                <Label text="Seats"/>
+                                <Spinner fx:id="seatsSpinner" prefWidth="100" editable="true"/>
+                            </VBox>
+                            <VBox spacing="4">
+                                <Label text="Confirmation email"/>
+                                <TextField fx:id="emailField" prefWidth="280" promptText="you@example.com"/>
+                            </VBox>
+                            <VBox spacing="4" alignment="BOTTOM_LEFT">
+                                <Label text=" "/>
+                                <Button styleClass="btn,btn-success" text="Book selected" onAction="#handleBook"/>
+                            </VBox>
+                        </HBox>
+                        <Label fx:id="bookingMessageLabel" styleClass="status-ok"/>
+                    </VBox>
+
+                    <VBox styleClass="card" spacing="10">
+                        <Label styleClass="card-title" text="My bookings"/>
+                        <TableView fx:id="myBookingsTable" prefHeight="220">
+                            <columns>
+                                <TableColumn fx:id="myIdColumn"        prefWidth="60"  text="ID"/>
+                                <TableColumn fx:id="myTrainColumn"     prefWidth="100" text="Train"/>
+                                <TableColumn fx:id="myFromColumn"      prefWidth="150" text="From"/>
+                                <TableColumn fx:id="myToColumn"        prefWidth="150" text="To"/>
+                                <TableColumn fx:id="myDepartureColumn" prefWidth="140" text="Departure"/>
+                                <TableColumn fx:id="mySeatsColumn"     prefWidth="80"  text="Seats"/>
+                                <TableColumn fx:id="myBookedAtColumn"  prefWidth="140" text="Booked at"/>
+                            </columns>
+                            <columnResizePolicy>
+                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                            </columnResizePolicy>
+                        </TableView>
+                    </VBox>
+                </VBox>
+            </Tab>
+
+            <Tab text="Find connections">
+                <VBox spacing="16">
+                    <padding><Insets top="20" right="24" bottom="20" left="24"/></padding>
+
+                    <VBox styleClass="card" spacing="12">
+                        <Label styleClass="card-title" text="Find times between two stations"/>
+                        <Label styleClass="card-hint" text="Includes journeys with one changeover. Booking is done from the 'Book a ticket' tab."/>
+                        <HBox spacing="14" alignment="CENTER_LEFT">
+                            <VBox spacing="4">
+                                <Label text="From"/>
+                                <ComboBox fx:id="connFromCombo" prefWidth="220" promptText="Select start"/>
+                            </VBox>
+                            <VBox spacing="4">
+                                <Label text="To"/>
+                                <ComboBox fx:id="connToCombo" prefWidth="220" promptText="Select destination"/>
+                            </VBox>
+                            <VBox spacing="4">
+                                <Label text="Date"/>
+                                <DatePicker fx:id="connDate" prefWidth="160"/>
+                            </VBox>
+                            <VBox spacing="4" alignment="BOTTOM_LEFT">
+                                <Label text=" "/>
+                                <Button styleClass="btn,btn-primary" text="Search" onAction="#handleSearchJourneys"/>
+                            </VBox>
+                        </HBox>
+                    </VBox>
+
+                    <VBox styleClass="card" spacing="10" VBox.vgrow="ALWAYS">
+                        <Label styleClass="card-title" text="Possible journeys"/>
+                        <Label fx:id="connHint" styleClass="card-hint" text="Pick a search above. Direct trains and one-changeover trips will both appear, sorted by arrival time."/>
+                        <TableView fx:id="journeysTable" VBox.vgrow="ALWAYS">
+                            <columns>
+                                <TableColumn fx:id="jDepartureColumn" prefWidth="140" text="Departure"/>
+                                <TableColumn fx:id="jArrivalColumn"   prefWidth="140" text="Arrival"/>
+                                <TableColumn fx:id="jDurationColumn"  prefWidth="100" text="Duration"/>
+                                <TableColumn fx:id="jChangesColumn"   prefWidth="90"  text="Changes"/>
+                                <TableColumn fx:id="jTrainsColumn"    prefWidth="170" text="Trains"/>
+                                <TableColumn fx:id="jSeatsColumn"     prefWidth="100" text="Min seats"/>
+                            </columns>
+                            <columnResizePolicy>
+                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                            </columnResizePolicy>
+                        </TableView>
+
+                        <Label styleClass="card-title" text="Itinerary" style="-fx-font-size: 13;"/>
+                        <TextArea fx:id="itineraryArea" editable="false" prefRowCount="6" wrapText="true"/>
+                    </VBox>
+                </VBox>
+            </Tab>
+
+        </TabPane>
     </center>
 </BorderPane>

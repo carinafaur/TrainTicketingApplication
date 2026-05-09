@@ -73,8 +73,8 @@ public class ScheduleEditController {
     @FXML
     public void initialize() {
         statusCombo.setItems(FXCollections.observableArrayList(
-                "ON-TIME", "DELAYED", "CANCELLED"));
-        statusCombo.getSelectionModel().select("ON-TIME");
+                "ON_TIME", "DELAYED", "CANCELLED"));
+        statusCombo.getSelectionModel().select("ON_TIME");
 
         delaySpinner.setValueFactory(
                 new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 999, 0, 1));
@@ -82,10 +82,10 @@ public class ScheduleEditController {
         delaySpinner.valueProperty().addListener((obs, oldV, newV) -> {
             if (loading || newV == null) return;
             String s = statusCombo.getValue();
-            if (newV > 0 && "ON-TIME".equals(s)) {
+            if (newV > 0 && "ON_TIME".equals(s)) {
                 statusCombo.setValue("DELAYED");
             } else if (newV == 0 && "DELAYED".equals(s)) {
-                statusCombo.setValue("ON-TIME");
+                statusCombo.setValue("ON_TIME");
             }
         });
 
@@ -95,7 +95,7 @@ public class ScheduleEditController {
             if (d == null) return;
             if ("DELAYED".equals(newV) && d == 0) {
                 delaySpinner.getValueFactory().setValue(1);
-            } else if ("ON-TIME".equals(newV) && d > 0) {
+            } else if ("ON_TIME".equals(newV) && d > 0) {
                 delaySpinner.getValueFactory().setValue(0);
             }
         });
@@ -135,8 +135,8 @@ public class ScheduleEditController {
 
         List<ScheduleStopDTO> stops = existing.getStops();
         if (stops != null && stops.size() >= 2) {
-            this.routeStartStation = stationFromStopDTO(stops.get(0));
-            this.routeEndStation   = stationFromStopDTO(stops.get(stops.size() - 1));
+            this.routeStartStation = stationFromStopDTO(stops.getFirst());
+            this.routeEndStation   = stationFromStopDTO(stops.getLast());
         } else {
             this.routeStartStation = stationFromName(routeStartStationId, routeStartStationName);
             this.routeEndStation   = stationFromName(routeEndStationId, routeEndStationName);
@@ -146,7 +146,7 @@ public class ScheduleEditController {
 
         loading = true;
         try {
-            statusCombo.getSelectionModel().select(existing.getStatus() == null ? "ON-TIME" : existing.getStatus());
+            statusCombo.getSelectionModel().select(existing.getStatus() == null ? "ON_TIME" : existing.getStatus());
             delaySpinner.getValueFactory().setValue(existing.getDelayMinutes());
         } finally {
             loading = false;
@@ -292,8 +292,8 @@ public class ScheduleEditController {
             stopDTOs.add(s);
         }
 
-        LocalDateTime overallDep = stopDTOs.get(0).getDepartureTime();
-        LocalDateTime overallArr = stopDTOs.get(stopDTOs.size() - 1).getArrivalTime();
+        LocalDateTime overallDep = stopDTOs.getFirst().getDepartureTime();
+        LocalDateTime overallArr = stopDTOs.getLast().getArrivalTime();
 
         return new ScheduleDTO(
                 editingScheduleId == null ? 0 : editingScheduleId,

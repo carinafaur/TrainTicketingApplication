@@ -9,6 +9,7 @@ import dtos.AvailableScheduleDTO;
 import dtos.BookingDTO;
 import dtos.BookingRequestDTO;
 import dtos.DTOUtils;
+import dtos.JourneyDTO;
 import dtos.JourneySearchDTO;
 import dtos.RouteDTO;
 import dtos.ScheduleDTO;
@@ -205,6 +206,22 @@ public class ServerProxy implements IService {
             return list == null ? List.of() : list;
         } catch (AppException e) {
             System.err.println("Search error: " + e.getMessage());
+            return List.of();
+        }
+    }
+
+    @Override
+    public List<JourneyDTO> searchJourneys(JourneySearchDTO criteria) {
+        try {
+            checkConnection();
+            sendRequest(new Request(RequestType.SEARCH_JOURNEYS, criteria));
+            Response res = readResponse();
+            if (res.getType() == ResponseType.ERROR) throw new AppException(res.getErrorMessage());
+            @SuppressWarnings("unchecked")
+            List<JourneyDTO> list = (List<JourneyDTO>) res.getData();
+            return list == null ? List.of() : list;
+        } catch (AppException e) {
+            System.err.println("Journey search error: " + e.getMessage());
             return List.of();
         }
     }

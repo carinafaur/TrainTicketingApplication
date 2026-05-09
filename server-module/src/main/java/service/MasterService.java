@@ -10,6 +10,7 @@ import dtos.AvailableScheduleDTO;
 import dtos.BookingDTO;
 import dtos.BookingRequestDTO;
 import dtos.DTOUtils;
+import dtos.JourneyDTO;
 import dtos.JourneySearchDTO;
 import exceptions.AlreadyExistsException;
 import exceptions.AppException;
@@ -153,6 +154,11 @@ public class MasterService implements IService {
     @Override
     public List<AvailableScheduleDTO> searchAvailableSchedules(JourneySearchDTO criteria) {
         return bookingService.search(criteria);
+    }
+
+    @Override
+    public List<JourneyDTO> searchJourneys(JourneySearchDTO criteria) {
+        return bookingService.searchJourneys(criteria);
     }
 
     @Override

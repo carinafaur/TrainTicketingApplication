@@ -5,6 +5,8 @@ import domain.User;
 import dtos.AvailableScheduleDTO;
 import dtos.BookingDTO;
 import dtos.BookingRequestDTO;
+import dtos.JourneyDTO;
+import dtos.JourneyLegDTO;
 import dtos.JourneySearchDTO;
 import dtos.RouteDTO;
 import dtos.ScheduleDTO;
@@ -28,6 +30,7 @@ import javafx.scene.control.Spinner;
 import javafx.scene.control.SpinnerValueFactory;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 import javafx.util.StringConverter;
@@ -49,6 +52,7 @@ public class CustomerController implements IObserver {
     private final ObservableList<Station> stationsModel = FXCollections.observableArrayList();
     private final ObservableList<AvailableScheduleDTO> resultsModel = FXCollections.observableArrayList();
     private final ObservableList<BookingDTO> myBookingsModel = FXCollections.observableArrayList();
+    private final ObservableList<JourneyDTO> journeysModel = FXCollections.observableArrayList();
 
     @FXML private Label welcomeLabel;
 
@@ -78,6 +82,19 @@ public class CustomerController implements IObserver {
     @FXML private TableColumn<BookingDTO, String>  myDepartureColumn;
     @FXML private TableColumn<BookingDTO, Integer> mySeatsColumn;
     @FXML private TableColumn<BookingDTO, String>  myBookedAtColumn;
+
+    @FXML private ComboBox<Station> connFromCombo;
+    @FXML private ComboBox<Station> connToCombo;
+    @FXML private DatePicker connDate;
+    @FXML private Label connHint;
+    @FXML private TableView<JourneyDTO> journeysTable;
+    @FXML private TableColumn<JourneyDTO, String>  jDepartureColumn;
+    @FXML private TableColumn<JourneyDTO, String>  jArrivalColumn;
+    @FXML private TableColumn<JourneyDTO, String>  jDurationColumn;
+    @FXML private TableColumn<JourneyDTO, Integer> jChangesColumn;
+    @FXML private TableColumn<JourneyDTO, String>  jTrainsColumn;
+    @FXML private TableColumn<JourneyDTO, Integer> jSeatsColumn;
+    @FXML private TextArea itineraryArea;
 
     public void setServer(IService server) {
         this.server = server;
@@ -137,6 +154,26 @@ public class CustomerController implements IObserver {
         myBookedAtColumn.setCellValueFactory(c -> new SimpleStringProperty(
                 c.getValue().getBookingDate() == null ? "" : c.getValue().getBookingDate().format(UI_FMT)));
         myBookingsTable.setItems(myBookingsModel);
+
+        connFromCombo.setConverter(stationConverter);
+        connToCombo.setConverter(stationConverter);
+        connFromCombo.setItems(stationsModel);
+        connToCombo.setItems(stationsModel);
+        connDate.setValue(LocalDate.now());
+
+        jDepartureColumn.setCellValueFactory(c -> new SimpleStringProperty(
+                c.getValue().getOverallDeparture() == null ? "" : c.getValue().getOverallDeparture().format(UI_FMT)));
+        jArrivalColumn.setCellValueFactory(c -> new SimpleStringProperty(
+                c.getValue().getOverallArrival() == null ? "" : c.getValue().getOverallArrival().format(UI_FMT)));
+        jDurationColumn.setCellValueFactory(c -> new SimpleStringProperty(formatDuration(c.getValue().getTotalDurationMinutes())));
+        jChangesColumn.setCellValueFactory(c -> new SimpleIntegerProperty(c.getValue().getNumberOfChangeovers()).asObject());
+        jTrainsColumn.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getTrainsLabel()));
+        jSeatsColumn.setCellValueFactory(c -> new SimpleIntegerProperty(c.getValue().getMinSeatsAvailable()).asObject());
+        journeysTable.setItems(journeysModel);
+
+        journeysTable.getSelectionModel().selectedItemProperty().addListener((obs, oldV, newV) -> {
+            itineraryArea.setText(formatItinerary(newV));
+        });
     }
 
     public static void show(IService server, User user) {
@@ -195,10 +232,10 @@ public class CustomerController implements IObserver {
         resultsModel.setAll(results);
 
         if (results.isEmpty()) {
-            resultsHint.setText("No trains found for " + from.getStationCity() + " → "
-                    + to.getStationCity() + " on " + date + ".");
+            resultsHint.setText("No direct train found for " + from.getStationCity() + " → "
+                    + to.getStationCity() + " on " + date + ". Check the 'Find connections' tab for journeys with changeovers.");
         } else {
-            resultsHint.setText(results.size() + " train(s) on " + date
+            resultsHint.setText(results.size() + " direct train(s) on " + date
                     + " from " + from.getStationCity() + " to " + to.getStationCity() + ".");
         }
         bookingMessageLabel.setText("");
@@ -240,9 +277,45 @@ public class CustomerController implements IObserver {
             loadMyBookings();
             handleSearch();
             setOk(bookingMessageLabel,
-                    "Booking confirmed. Email sent to " + email + ".");
+                    "Booking #" + saved.getId() + " confirmed. Email sent to " + email + ".");
         } catch (AppException e) {
             setErr(bookingMessageLabel, "Booking failed: " + e.getMessage());
+        }
+    }
+
+    @FXML
+    public void handleSearchJourneys() {
+        Station from = connFromCombo.getValue();
+        Station to = connToCombo.getValue();
+        LocalDate date = connDate.getValue();
+
+        if (from == null || to == null || date == null) {
+            connHint.setText("Pick from + to + date.");
+            journeysModel.clear();
+            itineraryArea.setText("");
+            return;
+        }
+        if (from.getId() == to.getId()) {
+            connHint.setText("From and to must be different stations.");
+            journeysModel.clear();
+            itineraryArea.setText("");
+            return;
+        }
+
+        var journeys = server.searchJourneys(new JourneySearchDTO(from.getId(), to.getId(), date));
+        journeysModel.setAll(journeys);
+
+        if (journeys.isEmpty()) {
+            connHint.setText("No journey found between " + from.getStationCity()
+                    + " and " + to.getStationCity() + " on " + date
+                    + ". The stations are not linked, even with one changeover.");
+            itineraryArea.setText("");
+        } else {
+            long direct = journeys.stream().filter(JourneyDTO::isDirect).count();
+            long indirect = journeys.size() - direct;
+            connHint.setText(journeys.size() + " journey(s) found — "
+                    + direct + " direct, " + indirect + " with one changeover. Click a row to see the itinerary.");
+            journeysTable.getSelectionModel().selectFirst();
         }
     }
 
@@ -255,6 +328,39 @@ public class CustomerController implements IObserver {
         } catch (Exception e) {
             showError("Logout error: " + e.getMessage());
         }
+    }
+
+    private String formatDuration(long minutes) {
+        if (minutes <= 0) return "—";
+        long h = minutes / 60;
+        long m = minutes % 60;
+        if (h == 0) return m + "m";
+        return h + "h " + (m == 0 ? "" : m + "m");
+    }
+
+    private String formatItinerary(JourneyDTO journey) {
+        if (journey == null || journey.getLegs() == null || journey.getLegs().isEmpty()) return "";
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < journey.getLegs().size(); i++) {
+            JourneyLegDTO leg = journey.getLegs().get(i);
+            sb.append("Leg ").append(i + 1).append(" — ").append(leg.getTrainNumber()).append('\n');
+            sb.append("    ").append(formatTime(leg.getDepartureTime()))
+                    .append("  ").append(leg.getFromStationCity()).append(" · ").append(leg.getFromStationName()).append('\n');
+            sb.append("    ").append(formatTime(leg.getArrivalTime()))
+                    .append("  ").append(leg.getToStationCity()).append(" · ").append(leg.getToStationName()).append('\n');
+            sb.append("    Seats free on this leg: ").append(leg.getSeatsAvailable()).append('\n');
+            if (i < journey.getLegs().size() - 1) {
+                JourneyLegDTO next = journey.getLegs().get(i + 1);
+                long layover = java.time.Duration.between(leg.getArrivalTime(), next.getDepartureTime()).toMinutes();
+                sb.append("    Changeover at ").append(leg.getToStationCity())
+                        .append(" — wait ").append(layover).append(" min").append("\n\n");
+            }
+        }
+        return sb.toString();
+    }
+
+    private String formatTime(java.time.LocalDateTime t) {
+        return t == null ? "—  " : t.format(UI_FMT);
     }
 
     @Override public void routeAdded(RouteDTO newRoute) {}

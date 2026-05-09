@@ -9,6 +9,8 @@ import dtos.AvailableScheduleDTO;
 import dtos.BookingDTO;
 import dtos.BookingRequestDTO;
 import dtos.DTOUtils;
+import dtos.JourneyDTO;
+import dtos.JourneyLegDTO;
 import dtos.JourneySearchDTO;
 import exceptions.NotFoundException;
 import exceptions.ValidationException;
@@ -21,7 +23,9 @@ import validators.BookingValidator;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class BookingService {
 
@@ -219,5 +223,155 @@ public class BookingService {
             i++;
         }
         return -1;
+    }
+
+    private static final int MIN_TRANSFER_MINUTES = 5;
+    private static final int MAX_LAYOVER_HOURS = 6;
+    private static final int MAX_RESULTS = 25;
+
+    public List<JourneyDTO> searchJourneys(JourneySearchDTO criteria) {
+        if (criteria == null
+                || criteria.getDate() == null
+                || criteria.getStartStationId() <= 0
+                || criteria.getEndStationId() <= 0
+                || criteria.getStartStationId() == criteria.getEndStationId()) {
+            return List.of();
+        }
+
+        LocalDate date = criteria.getDate();
+        int startId = criteria.getStartStationId();
+        int endId = criteria.getEndStationId();
+
+        List<Schedule> all = scheduleRepository.getAllSchedules();
+        Map<Integer, Map<Integer, Integer>> indexById = new HashMap<>();
+        Map<Integer, List<Booking>> bookingsByScheduleId = new HashMap<>();
+        for (Schedule s : all) {
+            Map<Integer, Integer> idx = new HashMap<>();
+            int i = 0;
+            for (ScheduleStop stop : s.getStops()) {
+                if (stop.getStation() != null) {
+                    idx.put(stop.getStation().getId(), i);
+                }
+                i++;
+            }
+            indexById.put(s.getId(), idx);
+        }
+
+        List<JourneyDTO> results = new ArrayList<>();
+
+        for (Schedule s : all) {
+            if (!startsOn(s, date) || isCancelled(s)) continue;
+            Integer startIdx = indexById.get(s.getId()).get(startId);
+            Integer endIdx = indexById.get(s.getId()).get(endId);
+            if (startIdx == null || endIdx == null || startIdx >= endIdx) continue;
+
+            JourneyLegDTO leg = buildLeg(s, startIdx, endIdx, bookingsByScheduleId);
+            results.add(new JourneyDTO(List.of(leg)));
+        }
+
+        for (Schedule s1 : all) {
+            if (!startsOn(s1, date) || isCancelled(s1)) continue;
+            Integer s1StartIdx = indexById.get(s1.getId()).get(startId);
+            if (s1StartIdx == null) continue;
+
+            List<ScheduleStop> stops1 = s1.getStops();
+            for (int xIdx = s1StartIdx + 1; xIdx < stops1.size(); xIdx++) {
+                ScheduleStop xStop1 = stops1.get(xIdx);
+                if (xStop1.getStation() == null) continue;
+                int xId = xStop1.getStation().getId();
+                if (xId == endId || xId == startId) continue;
+
+                LocalDateTime arrAtX = xStop1.getArrivalTime();
+                if (arrAtX == null) continue;
+
+                for (Schedule s2 : all) {
+                    if (s2.getId() == s1.getId()) continue;
+                    if (isCancelled(s2)) continue;
+
+                    Map<Integer, Integer> s2Idx = indexById.get(s2.getId());
+                    Integer s2XIdx = s2Idx.get(xId);
+                    Integer s2EndIdx = s2Idx.get(endId);
+                    if (s2XIdx == null || s2EndIdx == null || s2XIdx >= s2EndIdx) continue;
+
+                    ScheduleStop xStop2 = s2.getStops().get(s2XIdx);
+                    LocalDateTime depFromX = xStop2.getDepartureTime();
+                    if (depFromX == null) continue;
+                    if (!depFromX.isAfter(arrAtX.plusMinutes(MIN_TRANSFER_MINUTES))) continue;
+                    if (depFromX.isAfter(arrAtX.plusHours(MAX_LAYOVER_HOURS))) continue;
+
+                    JourneyLegDTO leg1 = buildLeg(s1, s1StartIdx, xIdx, bookingsByScheduleId);
+                    JourneyLegDTO leg2 = buildLeg(s2, s2XIdx, s2EndIdx, bookingsByScheduleId);
+                    results.add(new JourneyDTO(List.of(leg1, leg2)));
+                }
+            }
+        }
+
+        results.sort((a, b) -> {
+            LocalDateTime aa = a.getOverallArrival();
+            LocalDateTime bb = b.getOverallArrival();
+            if (aa == null) return 1;
+            if (bb == null) return -1;
+            int cmp = aa.compareTo(bb);
+            if (cmp != 0) return cmp;
+            return Integer.compare(a.getNumberOfChangeovers(), b.getNumberOfChangeovers());
+        });
+
+        if (results.size() > MAX_RESULTS) {
+            return new ArrayList<>(results.subList(0, MAX_RESULTS));
+        }
+        return results;
+    }
+
+    private boolean startsOn(Schedule s, LocalDate date) {
+        return s.getDepartureTime() != null
+                && s.getDepartureTime().toLocalDate().equals(date);
+    }
+
+    private boolean isCancelled(Schedule s) {
+        return "CANCELLED".equalsIgnoreCase(s.getStatus());
+    }
+
+    private JourneyLegDTO buildLeg(Schedule s, int fromIdx, int toIdx,
+                                   Map<Integer, List<Booking>> bookingsCache) {
+        ScheduleStop fromStop = s.getStops().get(fromIdx);
+        ScheduleStop toStop = s.getStops().get(toIdx);
+
+        int capacity = s.getTrain() == null ? 0 : s.getTrain().getCapacity();
+        int seatsAvailable = capacity;
+        if (capacity > 0) {
+            List<Booking> bookings = bookingsCache.computeIfAbsent(
+                    s.getId(), bookingRepository::findBySchedule);
+            int maxSeatsTaken = 0;
+            for (int leg = fromIdx; leg < toIdx; leg++) {
+                int legSeats = 0;
+                for (Booking b : bookings) {
+                    int bStart = stopIndexOf(s, b.getStartStation().getId());
+                    int bEnd = stopIndexOf(s, b.getEndStation().getId());
+                    if (bStart < 0 || bEnd < 0) continue;
+                    if (bStart <= leg && leg < bEnd) {
+                        legSeats += b.getSeatsReserved();
+                    }
+                }
+                if (legSeats > maxSeatsTaken) maxSeatsTaken = legSeats;
+            }
+            seatsAvailable = capacity - maxSeatsTaken;
+        }
+
+        return new JourneyLegDTO(
+                s.getId(),
+                s.getTrain() == null ? 0 : s.getTrain().getId(),
+                s.getTrain() == null ? null : s.getTrain().getTrainNumber(),
+                fromStop.getStation().getId(),
+                fromStop.getStation().getStationName(),
+                fromStop.getStation().getStationCity(),
+                fromStop.getDepartureTime(),
+                toStop.getStation().getId(),
+                toStop.getStation().getStationName(),
+                toStop.getStation().getStationCity(),
+                toStop.getArrivalTime(),
+                seatsAvailable,
+                s.getDelayMinutes(),
+                s.getStatus()
+        );
     }
 }
