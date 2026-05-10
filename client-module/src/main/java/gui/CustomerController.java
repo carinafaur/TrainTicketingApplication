@@ -19,10 +19,6 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
-import javafx.scene.control.Alert;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
@@ -32,21 +28,22 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
-import javafx.stage.Stage;
 import javafx.util.StringConverter;
+import service.IAuthService;
+import service.IBookingService;
 import service.IObserver;
 import service.IService;
+import service.IStationService;
 
-import java.io.IOException;
+import java.time.Duration;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
+import java.time.LocalDateTime;
 
-public class CustomerController implements IObserver {
+public class CustomerController extends BaseController implements IObserver {
 
-    private static final DateTimeFormatter UI_FMT =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-
-    private IService server;
+    private IAuthService auth;
+    private IStationService stationApi;
+    private IBookingService bookingApi;
     private User currentUser;
 
     private final ObservableList<Station> stationsModel = FXCollections.observableArrayList();
@@ -97,8 +94,10 @@ public class CustomerController implements IObserver {
     @FXML private TextArea itineraryArea;
 
     public void setServer(IService server) {
-        this.server = server;
-        this.server.setObserver(this);
+        this.auth = server;
+        this.stationApi = server;
+        this.bookingApi = server;
+        auth.setObserver(this);
     }
 
     public void setUser(User user) {
@@ -177,39 +176,19 @@ public class CustomerController implements IObserver {
     }
 
     public static void show(IService server, User user) {
-        try {
-            FXMLLoader loader = new FXMLLoader(CustomerController.class.getResource("/customerView.fxml"));
-            Parent root = loader.load();
-
-            CustomerController controller = loader.getController();
-            controller.setServer(server);
-            controller.setUser(user);
-
-            Stage stage = new Stage();
-            stage.setTitle("Train Ticketing — Customer · " + user.getUsername());
-            stage.setScene(new Scene(root));
-            stage.show();
-        } catch (IOException e) {
-            e.printStackTrace();
-            showError(e.getMessage());
-        }
-    }
-
-    private static void showError(String message) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle("Error");
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
+        CustomerController controller = loadFxml("/customerView.fxml");
+        controller.setServer(server);
+        controller.setUser(user);
+        controller.showInNewStage("Train Ticketing — Customer · " + user.getUsername());
     }
 
     private void loadStations() {
-        stationsModel.setAll(server.getAllStations());
+        stationsModel.setAll(stationApi.getAllStations());
     }
 
     private void loadMyBookings() {
         if (currentUser == null) return;
-        myBookingsModel.setAll(server.getBookingsForUser(currentUser.getUsername()));
+        myBookingsModel.setAll(bookingApi.getBookingsForUser(currentUser.getUsername()));
     }
 
     @FXML
@@ -227,7 +206,7 @@ public class CustomerController implements IObserver {
             return;
         }
 
-        var results = server.searchAvailableSchedules(
+        var results = bookingApi.searchAvailableSchedules(
                 new JourneySearchDTO(from.getId(), to.getId(), date));
         resultsModel.setAll(results);
 
@@ -273,7 +252,7 @@ public class CustomerController implements IObserver {
                     seats,
                     email
             );
-            BookingDTO saved = server.bookSeats(req);
+            BookingDTO saved = bookingApi.bookSeats(req);
             loadMyBookings();
             handleSearch();
             setOk(bookingMessageLabel,
@@ -302,7 +281,7 @@ public class CustomerController implements IObserver {
             return;
         }
 
-        var journeys = server.searchJourneys(new JourneySearchDTO(from.getId(), to.getId(), date));
+        var journeys = bookingApi.searchJourneys(new JourneySearchDTO(from.getId(), to.getId(), date));
         journeysModel.setAll(journeys);
 
         if (journeys.isEmpty()) {
@@ -322,9 +301,8 @@ public class CustomerController implements IObserver {
     @FXML
     public void handleLogout() {
         try {
-            server.logoutUser(currentUser.getUsername(), this);
-            Stage stage = (Stage) myBookingsTable.getScene().getWindow();
-            stage.close();
+            auth.logoutUser(currentUser.getUsername(), this);
+            closeWindowOf(myBookingsTable);
         } catch (Exception e) {
             showError("Logout error: " + e.getMessage());
         }
@@ -351,7 +329,7 @@ public class CustomerController implements IObserver {
             sb.append("    Seats free on this leg: ").append(leg.getSeatsAvailable()).append('\n');
             if (i < journey.getLegs().size() - 1) {
                 JourneyLegDTO next = journey.getLegs().get(i + 1);
-                long layover = java.time.Duration.between(leg.getArrivalTime(), next.getDepartureTime()).toMinutes();
+                long layover = Duration.between(leg.getArrivalTime(), next.getDepartureTime()).toMinutes();
                 sb.append("    Changeover at ").append(leg.getToStationCity())
                         .append(" — wait ").append(layover).append(" min").append("\n\n");
             }
@@ -359,7 +337,7 @@ public class CustomerController implements IObserver {
         return sb.toString();
     }
 
-    private String formatTime(java.time.LocalDateTime t) {
+    private String formatTime(LocalDateTime t) {
         return t == null ? "—  " : t.format(UI_FMT);
     }
 
@@ -387,18 +365,5 @@ public class CustomerController implements IObserver {
                 loadMyBookings();
             }
         });
-    }
-
-    private void setOk(Label l, String msg) {
-        if (l == null) return;
-        l.getStyleClass().removeAll("status-ok", "status-error");
-        l.getStyleClass().add("status-ok");
-        l.setText(msg);
-    }
-    private void setErr(Label l, String msg) {
-        if (l == null) return;
-        l.getStyleClass().removeAll("status-ok", "status-error");
-        l.getStyleClass().add("status-error");
-        l.setText(msg);
     }
 }

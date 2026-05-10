@@ -16,26 +16,27 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.Stage;
 import javafx.util.StringConverter;
-import networking.ServerProxy;
+import service.IAuthService;
+import service.IBookingService;
 import service.IObserver;
+import service.IRouteService;
+import service.IScheduleClientApi;
 import service.IService;
+import service.IStationService;
+import service.ITrainService;
 
-import java.io.IOException;
-import java.time.format.DateTimeFormatter;
+public class AdminController extends BaseController implements IObserver {
 
-public class AdminController implements IObserver {
-
-    private static final DateTimeFormatter UI_FMT =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-
-    private IService server;
+    private IAuthService auth;
+    private IRouteService routeApi;
+    private IStationService stationApi;
+    private ITrainService trainApi;
+    private IBookingService bookingApi;
+    private IScheduleClientApi scheduleApi;
     private User currentUser;
 
     private final ObservableList<Route> routesModel = FXCollections.observableArrayList();
@@ -97,8 +98,15 @@ public class AdminController implements IObserver {
     @FXML private Label welcomeLabel;
 
     public void setServer(IService server) {
-        this.server = server;
-        this.server.setObserver(this);
+        this.auth = server;
+        this.routeApi = server;
+        this.stationApi = server;
+        this.trainApi = server;
+        this.bookingApi = server;
+        if (server instanceof IScheduleClientApi) {
+            this.scheduleApi = (IScheduleClientApi) server;
+        }
+        auth.setObserver(this);
     }
 
     public void setUser(User user) {
@@ -218,30 +226,10 @@ public class AdminController implements IObserver {
     }
 
     public static void show(IService server, User user) {
-        try {
-            FXMLLoader loader = new FXMLLoader(AdminController.class.getResource("/adminView.fxml"));
-            Parent root = loader.load();
-
-            AdminController controller = loader.getController();
-            controller.setServer(server);
-            controller.setUser(user);
-
-            Stage stage = new Stage();
-            stage.setTitle("Train Ticketing — Admin · " + user.getUsername());
-            stage.setScene(new Scene(root));
-            stage.show();
-        } catch (IOException e) {
-            e.printStackTrace();
-            showError(e.getMessage());
-        }
-    }
-
-    private static void showError(String message) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle("Error");
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
+        AdminController controller = loadFxml("/adminView.fxml");
+        controller.setServer(server);
+        controller.setUser(user);
+        controller.showInNewStage("Train Ticketing — Admin · " + user.getUsername());
     }
 
     private void initData() {
@@ -252,16 +240,16 @@ public class AdminController implements IObserver {
         loadBookings();
     }
 
-    private void loadRoutes()    { routesModel.setAll(server.getAllRoutes()); }
-    private void loadStations()  { stationsModel.setAll(server.getAllStations()); }
-    private void loadTrains()    { trainsModel.setAll(server.getAllTrains()); }
+    private void loadRoutes()    { routesModel.setAll(routeApi.getAllRoutes()); }
+    private void loadStations()  { stationsModel.setAll(stationApi.getAllStations()); }
+    private void loadTrains()    { trainsModel.setAll(trainApi.getAllTrains()); }
     private void loadSchedules() {
-        if (server instanceof ServerProxy) {
-            schedulesModel.setAll(((ServerProxy) server).getAllScheduleDTOs());
+        if (scheduleApi != null) {
+            schedulesModel.setAll(scheduleApi.getAllScheduleDTOs());
         }
     }
     private void loadBookings() {
-        allBookingsModel.setAll(server.getAllBookings());
+        allBookingsModel.setAll(bookingApi.getAllBookings());
         applyBookingsFilter();
     }
 
@@ -303,7 +291,7 @@ public class AdminController implements IObserver {
             return;
         }
         try {
-            server.addRoute(new Route(start, end));
+            routeApi.addRoute(new Route(start, end));
             loadRoutes();
             setOk(messageLabel, "Route added.");
         } catch (Exception e) {
@@ -320,7 +308,7 @@ public class AdminController implements IObserver {
             Station end   = endStationCombo.getSelectionModel().getSelectedItem();
             selected.setStartStation(start);
             selected.setEndStation(end);
-            server.updateRoute(selected);
+            routeApi.updateRoute(selected);
             loadRoutes();
             setOk(messageLabel, "Route updated.");
         } catch (Exception e) {
@@ -333,7 +321,7 @@ public class AdminController implements IObserver {
         Route selected = routesTable.getSelectionModel().getSelectedItem();
         if (selected == null) { showError("Please select a route to delete!"); return; }
         try {
-            server.removeRoute(selected);
+            routeApi.removeRoute(selected);
             loadRoutes();
             setOk(messageLabel, "Route deleted.");
         } catch (Exception e) {
@@ -352,7 +340,7 @@ public class AdminController implements IObserver {
     public void handleAddTrain() {
         try {
             Train t = new Train(safeNumber(), safeCapacity());
-            server.addTrain(t);
+            trainApi.addTrain(t);
             loadTrains();
             setOk(trainMessageLabel, "Train '" + t.getTrainNumber() + "' added.");
             handleClearTrainForm();
@@ -368,7 +356,7 @@ public class AdminController implements IObserver {
         try {
             Train edited = new Train(safeNumber(), safeCapacity());
             edited.setId(selected.getId());
-            server.updateTrain(edited);
+            trainApi.updateTrain(edited);
             loadTrains();
             setOk(trainMessageLabel, "Train '" + edited.getTrainNumber() + "' updated.");
         } catch (Exception e) {
@@ -381,7 +369,7 @@ public class AdminController implements IObserver {
         Train selected = trainsTable.getSelectionModel().getSelectedItem();
         if (selected == null) { showError("Please select a train to delete!"); return; }
         try {
-            server.removeTrain(selected);
+            trainApi.removeTrain(selected);
             loadTrains();
             setOk(trainMessageLabel, "Train '" + selected.getTrainNumber() + "' deleted.");
             handleClearTrainForm();
@@ -401,7 +389,7 @@ public class AdminController implements IObserver {
     public void handleAddStation() {
         try {
             Station s = new Station(safeStationName(), safeStationCity());
-            server.addStation(s);
+            stationApi.addStation(s);
             loadStations();
             setOk(stationMessageLabel, "Station '" + s.getStationCity() + " · " + s.getStationName() + "' added.");
             handleClearStationForm();
@@ -417,7 +405,7 @@ public class AdminController implements IObserver {
         try {
             Station edited = new Station(safeStationName(), safeStationCity());
             edited.setId(selected.getId());
-            server.updateStation(edited);
+            stationApi.updateStation(edited);
             loadStations();
             setOk(stationMessageLabel, "Station updated.");
         } catch (Exception e) {
@@ -430,7 +418,7 @@ public class AdminController implements IObserver {
         Station selected = stationsTable.getSelectionModel().getSelectedItem();
         if (selected == null) { showError("Please select a station to delete!"); return; }
         try {
-            server.removeStation(selected);
+            stationApi.removeStation(selected);
             loadStations();
             setOk(stationMessageLabel, "Station deleted.");
             handleClearStationForm();
@@ -470,15 +458,13 @@ public class AdminController implements IObserver {
         try {
             Stage owner = (Stage) schedulesTable.getScene().getWindow();
             ScheduleDTO created = ScheduleEditController.openForNew(owner, stationsModel, t, r);
-            if (created != null) {
-                ((ServerProxy) server).addScheduleDTO(created);
+            if (created != null && scheduleApi != null) {
+                scheduleApi.addScheduleDTO(created);
                 loadSchedules();
                 setOk(scheduleMessageLabel, "Schedule created.");
             }
         } catch (AppException e) {
             setErr(scheduleMessageLabel, "Failed to add schedule: " + e.getMessage());
-        } catch (IOException e) {
-            showError("Couldn't open dialog: " + e.getMessage());
         }
     }
 
@@ -489,15 +475,13 @@ public class AdminController implements IObserver {
         try {
             Stage owner = (Stage) schedulesTable.getScene().getWindow();
             ScheduleDTO updated = ScheduleEditController.openForEdit(owner, stationsModel, selected);
-            if (updated != null) {
-                ((ServerProxy) server).updateScheduleDTO(updated);
+            if (updated != null && scheduleApi != null) {
+                scheduleApi.updateScheduleDTO(updated);
                 loadSchedules();
                 setOk(scheduleMessageLabel, "Schedule updated.");
             }
         } catch (AppException e) {
             setErr(scheduleMessageLabel, "Update failed: " + e.getMessage());
-        } catch (IOException e) {
-            showError("Couldn't open dialog: " + e.getMessage());
         }
     }
 
@@ -511,9 +495,9 @@ public class AdminController implements IObserver {
         confirm.setHeaderText("Delete schedule #" + selected.getId() + "?");
         confirm.setContentText(selected.getTrainNumber() + " · " + selected.getRouteLabel());
         confirm.showAndWait().ifPresent(btn -> {
-            if (btn == ButtonType.OK) {
+            if (btn == ButtonType.OK && scheduleApi != null) {
                 try {
-                    ((ServerProxy) server).removeScheduleDTO(selected);
+                    scheduleApi.removeScheduleDTO(selected);
                     loadSchedules();
                     setOk(scheduleMessageLabel, "Schedule deleted.");
                 } catch (AppException e) {
@@ -526,9 +510,8 @@ public class AdminController implements IObserver {
     @FXML
     public void handleLogout() {
         try {
-            server.logoutUser(currentUser.getUsername(), this);
-            Stage stage = (Stage) routesTable.getScene().getWindow();
-            stage.close();
+            auth.logoutUser(currentUser.getUsername(), this);
+            closeWindowOf(routesTable);
         } catch (Exception e) {
             showError("Logout error: " + e.getMessage());
         }
@@ -551,17 +534,4 @@ public class AdminController implements IObserver {
     @Override public void scheduleUpdated(ScheduleDTO updS)     { Platform.runLater(this::loadSchedules); }
 
     @Override public void bookingAdded(BookingDTO newBooking)   { Platform.runLater(this::loadBookings); }
-
-    private void setOk(Label l, String msg) {
-        if (l == null) return;
-        l.getStyleClass().removeAll("status-ok", "status-error");
-        l.getStyleClass().add("status-ok");
-        l.setText(msg);
-    }
-    private void setErr(Label l, String msg) {
-        if (l == null) return;
-        l.getStyleClass().removeAll("status-ok", "status-error");
-        l.getStyleClass().add("status-error");
-        l.setText(msg);
-    }
 }

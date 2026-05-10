@@ -18,6 +18,7 @@ import dtos.TrainDTO;
 import dtos.UserDTO;
 import exceptions.AppException;
 import service.IObserver;
+import service.IScheduleClientApi;
 import service.IService;
 
 import java.io.IOException;
@@ -29,7 +30,7 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 
-public class ServerProxy implements IService {
+public class ServerProxy implements IService, IScheduleClientApi {
     private final String host;
     private final int port;
     private ObjectOutputStream out;
@@ -162,6 +163,7 @@ public class ServerProxy implements IService {
         }
     }
 
+    @Override
     public List<ScheduleDTO> getAllScheduleDTOs() {
         getAllSchedules();
         return lastSchedulesDTO;
@@ -182,14 +184,17 @@ public class ServerProxy implements IService {
         sendRequestExpectingOk(new Request(RequestType.REMOVE_SCHEDULE, DTOUtils.getDTO(schedule)));
     }
 
+    @Override
     public void addScheduleDTO(ScheduleDTO dto) throws AppException {
         sendRequestExpectingOk(new Request(RequestType.ADD_SCHEDULE, dto));
     }
 
+    @Override
     public void updateScheduleDTO(ScheduleDTO dto) throws AppException {
         sendRequestExpectingOk(new Request(RequestType.UPDATE_SCHEDULE, dto));
     }
 
+    @Override
     public void removeScheduleDTO(ScheduleDTO dto) throws AppException {
         sendRequestExpectingOk(new Request(RequestType.REMOVE_SCHEDULE, dto));
     }

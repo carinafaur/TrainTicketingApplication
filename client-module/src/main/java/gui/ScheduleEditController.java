@@ -8,10 +8,7 @@ import dtos.ScheduleStopDTO;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
 import javafx.geometry.Pos;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
@@ -21,11 +18,9 @@ import javafx.scene.control.SpinnerValueFactory;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.StringConverter;
 
-import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -34,7 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class ScheduleEditController {
+public class ScheduleEditController extends BaseController {
 
     private static final DateTimeFormatter HHMM = DateTimeFormatter.ofPattern("HH:mm");
 
@@ -66,9 +61,9 @@ public class ScheduleEditController {
 
     private ScheduleDTO result;
 
-    private Stage stage;
-
-    public ScheduleDTO getResult() { return result; }
+    public ScheduleDTO getResult() {
+        return result;
+    }
 
     @FXML
     public void initialize() {
@@ -136,10 +131,10 @@ public class ScheduleEditController {
         List<ScheduleStopDTO> stops = existing.getStops();
         if (stops != null && stops.size() >= 2) {
             this.routeStartStation = stationFromStopDTO(stops.getFirst());
-            this.routeEndStation   = stationFromStopDTO(stops.getLast());
+            this.routeEndStation = stationFromStopDTO(stops.getLast());
         } else {
             this.routeStartStation = stationFromName(routeStartStationId, routeStartStationName);
-            this.routeEndStation   = stationFromName(routeEndStationId, routeEndStationName);
+            this.routeEndStation = stationFromName(routeEndStationId, routeEndStationName);
         }
 
         applyMetaLabels();
@@ -277,8 +272,10 @@ public class ScheduleEditController {
             }
 
             LocalDateTime arr = null, dep = null;
-            if (r.kind != StopKind.START)  arr = parseDateTime(r.arrivalDate.getValue(), r.arrivalTimeField.getText(), "arrival on stop " + (i + 1));
-            if (r.kind != StopKind.END)    dep = parseDateTime(r.departureDate.getValue(), r.departureTimeField.getText(), "departure on stop " + (i + 1));
+            if (r.kind != StopKind.START)
+                arr = parseDateTime(r.arrivalDate.getValue(), r.arrivalTimeField.getText(), "arrival on stop " + (i + 1));
+            if (r.kind != StopKind.END)
+                dep = parseDateTime(r.departureDate.getValue(), r.departureTimeField.getText(), "departure on stop " + (i + 1));
 
             ScheduleStopDTO s = new ScheduleStopDTO(
                     0,
@@ -329,35 +326,26 @@ public class ScheduleEditController {
     public static ScheduleDTO openForNew(Stage owner,
                                          List<Station> stations,
                                          Train train,
-                                         Route route) throws IOException {
+                                         Route route) {
         return open(owner, stations, controller -> controller.setupForNew(train, route));
     }
 
     public static ScheduleDTO openForEdit(Stage owner,
                                           List<Station> stations,
-                                          ScheduleDTO existing) throws IOException {
+                                          ScheduleDTO existing) {
         return open(owner, stations, controller -> controller.setupForEdit(existing));
     }
 
     private static ScheduleDTO open(Stage owner, List<Station> stations,
-                                    Consumer<ScheduleEditController> setup) throws IOException {
-        FXMLLoader loader = new FXMLLoader(ScheduleEditController.class.getResource("/scheduleEditDialog.fxml"));
-        Parent root = loader.load();
-        ScheduleEditController controller = loader.getController();
+                                    Consumer<ScheduleEditController> setup) {
+        ScheduleEditController controller = loadFxml("/scheduleEditDialog.fxml");
         controller.setStations(stations);
         setup.accept(controller);
-
-        Stage stage = new Stage();
-        stage.initModality(Modality.WINDOW_MODAL);
-        if (owner != null) stage.initOwner(owner);
-        stage.setTitle("Schedule");
-        stage.setScene(new Scene(root));
-        controller.stage = stage;
-        stage.showAndWait();
+        controller.showAsModalDialog("Schedule", owner);
         return controller.getResult();
     }
 
-    private enum StopKind { START, INTERMEDIATE, END }
+    private enum StopKind {START, INTERMEDIATE, END}
 
     private final class StopRow {
         final StopKind kind;
@@ -378,8 +366,15 @@ public class ScheduleEditController {
 
             stationCombo.setItems(allStations);
             stationCombo.setConverter(new StringConverter<>() {
-                @Override public String toString(Station s) { return s == null ? "" : s.getStationCity() + " · " + s.getStationName(); }
-                @Override public Station fromString(String s) { return null; }
+                @Override
+                public String toString(Station s) {
+                    return s == null ? "" : s.getStationCity() + " · " + s.getStationName();
+                }
+
+                @Override
+                public Station fromString(String s) {
+                    return null;
+                }
             });
             stationCombo.setPrefWidth(220);
 
