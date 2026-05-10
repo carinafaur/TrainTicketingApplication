@@ -1,1 +1,4 @@
 rootProject.name = 'TrainTicketingApplication'
+include 'server-module'
+include 'client-module'
+include 'common-module'

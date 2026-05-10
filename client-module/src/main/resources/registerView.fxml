@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<StackPane xmlns="http://javafx.com/javafx/17"
+           xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="gui.RegisterController"
+           stylesheets="@styles.css"
+           prefWidth="440" prefHeight="600">
+    <padding><Insets top="32" right="32" bottom="32" left="32"/></padding>
+
+    <VBox styleClass="card" alignment="TOP_CENTER" spacing="14" maxWidth="380" maxHeight="520">
+        <padding><Insets top="28" right="28" bottom="28" left="28"/></padding>
+
+        <Label text="Create your account" style="-fx-font-size: 20px; -fx-font-weight: 700; -fx-text-fill: #4f46e5;"/>
+        <Label styleClass="card-hint" text="Pick a role and fill the form. Use admin only for testing."/>
+
+        <VBox spacing="6">
+            <Label text="Role"/>
+            <ComboBox fx:id="roleCombo" maxWidth="Infinity"/>
+        </VBox>
+
+        <VBox spacing="6">
+            <Label text="Username"/>
+            <TextField fx:id="usernameField" promptText="letters, digits, . _ -"/>
+        </VBox>
+
+        <VBox spacing="6">
+            <Label text="Email"/>
+            <TextField fx:id="emailField" promptText="you@example.com"/>
+        </VBox>
+
+        <VBox spacing="6">
+            <Label text="Password"/>
+            <PasswordField fx:id="passwordField" promptText="at least 6 characters"/>
+        </VBox>
+
+        <VBox spacing="6">
+            <Label text="Confirm password"/>
+            <PasswordField fx:id="confirmPasswordField" promptText="repeat password"/>
+        </VBox>
+
+        <Label fx:id="errorLabel" styleClass="status-error"/>
+
+        <HBox spacing="10" alignment="CENTER">
+            <Button styleClass="btn,btn-secondary" text="Cancel" onAction="#handleCancel"/>
+            <Button styleClass="btn,btn-primary" text="Create account" onAction="#handleRegister" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+        </HBox>
+    </VBox>
+</StackPane>
