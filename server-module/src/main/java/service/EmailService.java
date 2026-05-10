@@ -10,12 +10,9 @@ import jakarta.mail.Transport;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 
-import java.time.format.DateTimeFormatter;
 import java.util.Properties;
 
 public class EmailService {
-
-    private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private final String fromAddress;
     private final Session smtpSession;
@@ -32,9 +29,24 @@ public class EmailService {
     }
 
     public void sendBookingConfirmation(String to, Booking booking) {
-        String subject = "Booking confirmation #" + booking.getId();
-        String body = buildBookingBody(booking);
+        send(to,
+                "Booking confirmation #" + booking.getId(),
+                EmailBodyBuilder.forBookingConfirmation(booking));
+    }
 
+    public void sendDelayNotification(String to, String trainNumber, int delayMinutes, Booking booking) {
+        send(to,
+                "Train " + trainNumber + " delayed by " + delayMinutes + " min",
+                EmailBodyBuilder.forDelayNotification(trainNumber, delayMinutes, booking));
+    }
+
+    public void sendCancellationNotification(String to, String trainNumber, Booking booking) {
+        send(to,
+                "Train " + trainNumber + " cancelled",
+                EmailBodyBuilder.forCancellationNotification(trainNumber, booking));
+    }
+
+    private void send(String to, String subject, String body) {
         try {
             MimeMessage msg = new MimeMessage(smtpSession);
             msg.setFrom(new InternetAddress(fromAddress));
@@ -47,42 +59,6 @@ public class EmailService {
             System.err.println("EmailService: SMTP delivery failed for " + to
                     + " (" + subject + "): " + e.getMessage());
         }
-    }
-
-    private String buildBookingBody(Booking b) {
-        String trainNumber = b.getSchedule() != null && b.getSchedule().getTrain() != null
-                ? b.getSchedule().getTrain().getTrainNumber()
-                : "—";
-        String depTime = b.getSchedule() == null || b.getSchedule().getDepartureTime() == null
-                ? "—"
-                : b.getSchedule().getDepartureTime().format(FMT);
-        String arrTime = b.getSchedule() == null || b.getSchedule().getArrivalTime() == null
-                ? "—"
-                : b.getSchedule().getArrivalTime().format(FMT);
-        String bookingDate = b.getBookingDate() == null ? "—" : b.getBookingDate().format(FMT);
-
-        return String.format(
-                "Hello %s,%n%n" +
-                        "Your booking has been confirmed.%n%n" +
-                        "Booking ID:   %d%n" +
-                        "Train:        %s%n" +
-                        "From:         %s · %s%n" +
-                        "Departure:    %s%n" +
-                        "To:           %s · %s%n" +
-                        "Arrival:      %s%n" +
-                        "Seats:        %d%n" +
-                        "Booked on:    %s%n%n" +
-                        "Have a pleasant journey.%n",
-                b.getUser() == null ? "passenger" : b.getUser().getUsername(),
-                b.getId(),
-                trainNumber,
-                b.getStartStation().getStationCity(), b.getStartStation().getStationName(),
-                depTime,
-                b.getEndStation().getStationCity(), b.getEndStation().getStationName(),
-                arrTime,
-                b.getSeatsReserved(),
-                bookingDate
-        );
     }
 
     private static Session buildSmtpSession(EmailConfig cfg) {

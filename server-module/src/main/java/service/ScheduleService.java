@@ -22,6 +22,10 @@ public class ScheduleService {
         return repo.getAllSchedules();
     }
 
+    public Schedule findById(int id) {
+        return repo.findById(id);
+    }
+
     public Schedule addSchedule(Schedule schedule) throws ValidationException {
         normalize(schedule);
         validator.validate(schedule);

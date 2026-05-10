@@ -14,6 +14,7 @@ public class HandlerRegistry {
 
         m.put(RequestType.LOGIN,             new LoginHandler());
         m.put(RequestType.LOGOUT,            new LogoutHandler());
+        m.put(RequestType.REGISTER,          new RegisterHandler());
 
         m.put(RequestType.GET_ALL_ROUTES,    new GetAllRoutesHandler());
         m.put(RequestType.ADD_ROUTE,         new AddRouteHandler());

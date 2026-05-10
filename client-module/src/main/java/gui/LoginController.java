@@ -6,6 +6,7 @@ import exceptions.AppException;
 import javafx.fxml.FXML;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.stage.Stage;
 import service.IAuthService;
 import service.IService;
 
@@ -34,15 +35,20 @@ public class LoginController extends BaseController {
 
         try {
             User loggedUser = auth.loginUser(user, pass, null);
-
             if (loggedUser != null) {
-                usernameField.clear();
-                passwordField.clear();
-                if (loggedUser.getRole() == UserRole.CUSTOMER) CustomerController.show(server, loggedUser);
-                else if (loggedUser.getRole() == UserRole.ADMIN) AdminController.show(server, loggedUser);
+                openMainWindowFor(loggedUser);
             }
         } catch (AppException e) {
             showError(e.getMessage());
+        }
+    }
+
+    @FXML
+    public void handleSignUp() {
+        Stage owner = (Stage) usernameField.getScene().getWindow();
+        User newUser = RegisterController.open(owner, server);
+        if (newUser != null) {
+            openMainWindowFor(newUser);
         }
     }
 
@@ -50,5 +56,16 @@ public class LoginController extends BaseController {
         LoginController controller = loadFxml("/loginView.fxml");
         controller.setServer(server);
         controller.showInNewStage("Login");
+    }
+
+    private void openMainWindowFor(User user) {
+        usernameField.clear();
+        passwordField.clear();
+        if (user.getRole() == UserRole.CUSTOMER) {
+            CustomerController.show(server, user);
+        } else if (user.getRole() == UserRole.ADMIN) {
+            AdminController.show(server, user);
+        }
+        closeWindowOf(usernameField);
     }
 }

@@ -11,6 +11,7 @@ import dtos.BookingRequestDTO;
 import dtos.DTOUtils;
 import dtos.JourneyDTO;
 import dtos.JourneySearchDTO;
+import dtos.RegisterRequestDTO;
 import dtos.RouteDTO;
 import dtos.ScheduleDTO;
 import dtos.StationDTO;
@@ -59,6 +60,20 @@ public class ServerProxy implements IService, IScheduleClientApi {
         this.clientObserver = client;
 
         sendRequest(new Request(RequestType.LOGIN, new UserDTO(username, password)));
+        Response res = readResponse();
+        if (res.getType() == ResponseType.ERROR) {
+            closeConnection();
+            throw new AppException(res.getErrorMessage());
+        }
+        return (User) res.getData();
+    }
+
+    @Override
+    public User registerUser(RegisterRequestDTO request, IObserver client) throws AppException {
+        initializeConnection();
+        this.clientObserver = client;
+
+        sendRequest(new Request(RequestType.REGISTER, request));
         Response res = readResponse();
         if (res.getType() == ResponseType.ERROR) {
             closeConnection();

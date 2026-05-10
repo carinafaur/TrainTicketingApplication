@@ -99,17 +99,25 @@
                         <Label fx:id="bookingMessageLabel" styleClass="status-ok"/>
                     </VBox>
 
-                    <VBox styleClass="card" spacing="10">
-                        <Label styleClass="card-title" text="My bookings"/>
-                        <TableView fx:id="myBookingsTable" prefHeight="220">
+                </VBox>
+            </Tab>
+
+            <Tab text="My bookings">
+                <VBox spacing="16">
+                    <padding><Insets top="20" right="24" bottom="20" left="24"/></padding>
+
+                    <VBox styleClass="card" spacing="10" VBox.vgrow="ALWAYS">
+                        <Label styleClass="card-title" text="Your bookings"/>
+                        <Label styleClass="card-hint" text="All tickets you have reserved on this account, most recent first."/>
+                        <TableView fx:id="myBookingsTable" VBox.vgrow="ALWAYS">
                             <columns>
                                 <TableColumn fx:id="myIdColumn"        prefWidth="60"  text="ID"/>
                                 <TableColumn fx:id="myTrainColumn"     prefWidth="100" text="Train"/>
-                                <TableColumn fx:id="myFromColumn"      prefWidth="150" text="From"/>
-                                <TableColumn fx:id="myToColumn"        prefWidth="150" text="To"/>
-                                <TableColumn fx:id="myDepartureColumn" prefWidth="140" text="Departure"/>
+                                <TableColumn fx:id="myFromColumn"      prefWidth="180" text="From"/>
+                                <TableColumn fx:id="myToColumn"        prefWidth="180" text="To"/>
+                                <TableColumn fx:id="myDepartureColumn" prefWidth="160" text="Departure"/>
                                 <TableColumn fx:id="mySeatsColumn"     prefWidth="80"  text="Seats"/>
-                                <TableColumn fx:id="myBookedAtColumn"  prefWidth="140" text="Booked at"/>
+                                <TableColumn fx:id="myBookedAtColumn"  prefWidth="160" text="Booked at"/>
                             </columns>
                             <columnResizePolicy>
                                 <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>

@@ -47,10 +47,12 @@ public class StartServer {
             BookingService bookingService = new BookingService(
                     bookingRepo, scheduleRepo, stationRepo, userRepo,
                     bookingValidator, emailService);
+            JourneySearchService journeySearchService =
+                    new JourneySearchService(scheduleRepo, bookingRepo);
 
             IService service = new MasterService(
                     userService, routeService, stationService,
-                    trainService, scheduleService, bookingService);
+                    trainService, scheduleService, bookingService, journeySearchService);
 
             int port = 55555;
             ConcurrentServer server = new ConcurrentServer(port, service);

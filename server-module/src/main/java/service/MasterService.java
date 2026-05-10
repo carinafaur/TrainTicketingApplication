@@ -12,6 +12,7 @@ import dtos.BookingRequestDTO;
 import dtos.DTOUtils;
 import dtos.JourneyDTO;
 import dtos.JourneySearchDTO;
+import dtos.RegisterRequestDTO;
 import exceptions.AlreadyExistsException;
 import exceptions.AppException;
 import exceptions.NotFoundException;
@@ -28,6 +29,7 @@ public class MasterService implements IService {
     private final TrainService trainService;
     private final ScheduleService scheduleService;
     private final BookingService bookingService;
+    private final JourneySearchService journeySearchService;
     private final Map<String, IObserver> loggedClients = new ConcurrentHashMap<>();
 
     public MasterService(UserService userService,
@@ -35,13 +37,15 @@ public class MasterService implements IService {
                          StationService stationService,
                          TrainService trainService,
                          ScheduleService scheduleService,
-                         BookingService bookingService) {
+                         BookingService bookingService,
+                         JourneySearchService journeySearchService) {
         this.userService = userService;
         this.routeService = routeService;
         this.stationService = stationService;
         this.trainService = trainService;
         this.scheduleService = scheduleService;
         this.bookingService = bookingService;
+        this.journeySearchService = journeySearchService;
     }
 
     @Override
@@ -62,6 +66,13 @@ public class MasterService implements IService {
     @Override
     public void logoutUser(String username, IObserver client) {
         loggedClients.remove(username);
+    }
+
+    @Override
+    public User registerUser(RegisterRequestDTO request, IObserver client) throws AppException {
+        User user = userService.register(request);
+        loggedClients.put(user.getUsername(), client);
+        return user;
     }
 
     @Override
@@ -141,7 +152,22 @@ public class MasterService implements IService {
 
     @Override
     public void updateSchedule(Schedule schedule) throws AppException {
+        Schedule before = scheduleService.findById(schedule.getId());
+        int oldDelay = before == null ? 0 : before.getDelayMinutes();
+        String oldStatus = before == null ? null : before.getStatus();
+
         Schedule updated = scheduleService.updateSchedule(schedule);
+
+        boolean delayIncreased = updated.getDelayMinutes() > oldDelay && updated.getDelayMinutes() > 0;
+        boolean nowCancelled = "CANCELLED".equalsIgnoreCase(updated.getStatus())
+                && !"CANCELLED".equalsIgnoreCase(oldStatus);
+
+        if (nowCancelled) {
+            bookingService.notifyCancelledSchedule(updated);
+        } else if (delayIncreased) {
+            bookingService.notifyDelayedSchedule(updated);
+        }
+
         loggedClients.forEach((k, obs) -> obs.scheduleUpdated(DTOUtils.getDTO(updated)));
     }
 
@@ -153,12 +179,12 @@ public class MasterService implements IService {
 
     @Override
     public List<AvailableScheduleDTO> searchAvailableSchedules(JourneySearchDTO criteria) {
-        return bookingService.search(criteria);
+        return journeySearchService.searchDirect(criteria);
     }
 
     @Override
     public List<JourneyDTO> searchJourneys(JourneySearchDTO criteria) {
-        return bookingService.searchJourneys(criteria);
+        return journeySearchService.searchJourneys(criteria);
     }
 
     @Override

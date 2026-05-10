@@ -1,6 +1,7 @@
 package service;
 
 import domain.User;
+import dtos.RegisterRequestDTO;
 import exceptions.AppException;
 
 /**
@@ -11,5 +12,6 @@ public interface IAuthService {
 
     User loginUser(String username, String password, IObserver client) throws AppException;
     void logoutUser(String username, IObserver client);
+    User registerUser(RegisterRequestDTO request, IObserver client) throws AppException;
     void setObserver(IObserver clientObserver);
 }
